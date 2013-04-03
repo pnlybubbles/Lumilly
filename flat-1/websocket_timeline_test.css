@@ -1,0 +1,98 @@
+body {
+	font-family: 'Lucida Grande';
+	margin: 0;
+	-webkit-user-select: none;
+	cursor: default;
+}
+
+.status {
+	height: 40px;
+	width: 100%;
+}
+
+.container {
+	width: 100%;
+}
+
+.item {
+	margin: 0;
+	width: 100%;
+	height: auto;
+}
+
+.item_container {
+	position: relative;
+	margin: 0;
+	background-color: rgb(247, 247, 247);
+	border-top: 1px solid rgb(208, 208, 208);
+	padding: 12px;
+}
+
+.selected {
+	background-color: rgb(227, 227, 227);
+}
+
+.left_item {
+	/*margin: 10px 10px;*/
+	overflow : hidden;
+}
+
+.img_wrap {
+	margin: 0;
+	float: left;
+	padding: 3px;
+	background-color: rgb(255, 255, 255);
+	border: 1px solid rgb(208, 208, 208);
+}
+
+.profile_image {
+	position: relative;
+	width: 50px;
+	height: 50px;
+	margin: 0;
+	background-color: rgb(255, 255, 255);
+	background-size: contain;
+}
+
+.retweet_img_wrap {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	padding: 2px;
+	background-color: rgb(255, 255, 255);
+	border: 1px solid rgb(208, 208, 208);
+}
+
+.retweet_profile_image {
+	width: 20px;
+	height: 20px;
+	background-color: rgb(255, 255, 255);
+	background-size: contain;
+}
+
+.text_warp {
+	margin-left: 70px;
+	margin-bottom: 10px;
+	width: auto;
+	right: 10px;
+}
+
+.screen_name {
+	color: rgb(109, 109, 109);
+	font-size: 12px;
+	/*font-weight: bold;*/
+}
+
+.text {
+	color: rgb(28, 28, 28);
+	margin-top: 5px;
+	font-size: 12px;
+}
+
+.created_at {
+	position: absolute;
+	right: 10px;
+	bottom: 5px;
+	font-size: 10px;
+	color: rgb(163, 163, 163);
+}
