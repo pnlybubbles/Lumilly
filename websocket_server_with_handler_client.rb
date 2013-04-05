@@ -84,6 +84,10 @@ module App
 			@access_token.post("/statuses/destroy/#{id}.json")
 		end
 
+		def verify_credentials
+			return JSON.parse(@access_token.get("/account/verify_credentials.json").body)
+		end
+
 		def update(text, *id)
 			if(! id.empty?)
 				@access_token.post('/statuses/update.json', 
@@ -141,10 +145,14 @@ module App
 					if from == "client"
 						p [:message, event.data]
 						data = event_data["#{from}"]
-						Thread.new {
+						Thread.new(ws) { |ws_t|
 							begin
-								puts data["method"], data["argu"]
-								@receiver.send(data["method"], data["argu"]);
+								mthd, argu = @receiver.send(data["method"], data["argu"]);
+								if mthd && argu
+									command = {:method => mthd, :argu => argu}
+									msg = {:server => command}
+									ws_t.send(JSON.generate(msg).to_s)
+								end
 							rescue Exception => e
 								puts "#### #{e} ####"
 							end
@@ -235,6 +243,10 @@ module App
 		def destroy(argu)
 			id = argu[0]
 			@twitter_api.destroy(id)
+		end
+
+		def verify_credentials(argu)
+			return "set_my_data", @twitter_api.verify_credentials
 		end
 	end
 end

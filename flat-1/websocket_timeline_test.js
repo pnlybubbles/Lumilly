@@ -6,6 +6,27 @@ function load () {
 	set_events();
 	$container = $(".container");
 	$body = $("body");
+	// console.log("====");
+	// console.log(new Array(1));
+	// console.log(new Array(1).length);
+	// console.log(new Array());
+	// console.log(new Array().length);
+	// console.log([]);
+	// console.log([].length);
+	// console.log([undefined]);
+	// console.log([undefined].length);
+	// console.log(new Array("ruby"));
+	// console.log(["ruby"]);
+	// console.log(new Array(2));
+	// console.log([2]);
+	// a = {
+	// 	"a" : new Array()
+	// };
+	// b = {
+	// 	"a" : []
+	// };
+	// console.log(a);
+	// console.log(b);
 }
 
 
@@ -22,6 +43,7 @@ function load_websocket () {
 
 function on_open () {
 	console.log("socket opened");
+	tell("verify_credentials");
 }
 
 function on_colse () {
@@ -87,6 +109,7 @@ function set_events () {
 	//get keycode
 	$(window).keydown(function(event) {
 		key = event.keyCode;
+		with_key = "";
 		switch(key) {
 			case 38:
 			method = "go_prev";
@@ -97,10 +120,23 @@ function set_events () {
 			case 70:
 			method = "favorite";
 			break;
+			case 86:
+			with_key = "sm";
+			method = "retweet";
+			break;
 			default:
 			method = "key_" + key;
 		}
-		send(method);
+		if(event.shiftKey) {
+			with_key = with_key.replace(/s/, "");
+		} else if(event.ctrlKey) {
+			with_key = with_key.replace(/c/, "");
+		} else if(event.metaKey) {
+			with_key = with_key.replace(/m/, "");
+		}
+		if(with_key === "") {
+			send(method);
+		}
 		if(event.preventDefault) {
 			event.preventDefault();
 		}
@@ -119,15 +155,17 @@ function set_events () {
 //go prev item
 methods.go_prev = function() {
 	var items = new Items();
-	var prev_item = items.first().prev();
-	if(prev_item) {
-		send("move_cursor", prev_item);
-		if($("." + prev_item.id).offset().top < $body.scrollTop() || ($("." + prev_item.id).offset().top + $("." + prev_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
-			scroll_top = $("." + prev_item.id).offset().top - (window.innerHeight / 2);
-			if(scroll_top < 0) {
-				scroll_top = 0;
+	if(items.all_initialized()) {
+		var prev_item = items.first().prev();
+		if(prev_item) {
+			send("move_cursor", prev_item);
+			if($("." + prev_item.id).offset().top < $body.scrollTop() || ($("." + prev_item.id).offset().top + $("." + prev_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
+				scroll_top = $("." + prev_item.id).offset().top - (window.innerHeight / 2);
+				if(scroll_top < 0) {
+					scroll_top = 0;
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 			}
-			$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 		}
 	}
 };
@@ -135,15 +173,18 @@ methods.go_prev = function() {
 //go next item
 methods.go_next = function() {
 	var items = new Items();
-	var next_item = items.first().next();
-	if(next_item) {
-		send("move_cursor", next_item);
-		if($("." + next_item.id).offset().top < $body.scrollTop() || ($("." + next_item.id).offset().top + $("." + next_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
-			scroll_top = ($("." + next_item.id).offset().top + $("." + next_item.id).height()) - (window.innerHeight / 2);
-			if(scroll_top > ($body.height() - window.innerHeight)) {
-				scroll_top = ($body.height() - window.innerHeight);
+	if(items.all_initialized()) {
+		var next_item = items.first().next();
+		if(next_item) {
+			send("move_cursor", next_item);
+			console.log(next_item);
+			if($("." + next_item.id).offset().top < $body.scrollTop() || ($("." + next_item.id).offset().top + $("." + next_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
+				scroll_top = ($("." + next_item.id).offset().top + $("." + next_item.id).height()) - (window.innerHeight / 2);
+				if(scroll_top > ($body.height() - window.innerHeight)) {
+					scroll_top = ($body.height() - window.innerHeight);
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 			}
-			$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 		}
 	}
 };
@@ -152,11 +193,27 @@ methods.go_next = function() {
 methods.favorite = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
-		if(!(item.faved)) {
-			tell("favorite", item.real_id);
+		if(!(item.favorited)) {
+			tell("favorite", item.id);
+			item.favorited = true;
 		} else {
 			if(items.item.length == 1) {
-				tell("unfavorite", item.real_id);
+				tell("unfavorite", item.id);
+				item.favorited = false;
+			}
+		}
+	});
+};
+
+//retweet item
+methods.retweet = function() {
+	var items = new Items();
+	$.each(items.item, function(i, item) {
+		if(!(item.retweeted)) {
+			tell("retweet", item.id);
+		} else {
+			if(items.item.length == 1) {
+				tell("destroy", item.retweeted);
 			}
 		}
 	});
@@ -169,7 +226,7 @@ methods.move_cursor = function(item_obj) {
 	var before_items = new Items();
 	var set_items = new Items(item_obj);
 	if(set_items.initialized) {
-		if(before_items.initialized.every(function(v) { return v === true; })) {
+		if(before_items.all_initialized()) {
 			send("deselect_cursor", before_items);
 		}
 		send("select_cursor", set_items);
@@ -250,25 +307,31 @@ function Container() {
 
 Container.prototype = {
 	initialize: function() {
-		this.keys = ["id", "real_id", "coord"];
-		this.id_list = [];
-		this.real_id_list = [];
-		this.selected = [];
+		this.init_obj = {
+			"id" : null,
+			"coord" : null,
+			"favorited" : false,
+			"retweeted" : null,
+			"retweets" : [],//array
+			"src" : null
+		};
+		this.arrays = ["id_list", "favorited_list", "retweeted_list", "retweets_list", "source_list", "selected"];
+		this.arrays.forEach(function(mthd, i) {
+			this[mthd] = [];
+		}, this);
 	},
-	add: function(id, real_id) {
-		this.id_list.push(String(id));
-		this.real_id_list.push(String(real_id));
-	},
-	id: function(id) {
-		id = String(id);
-		if(this.id_list.indexOf(id) != -1) {
-			return {
-				"id" : id,
-				"real_id" : this.real_id_list[this.id_list.indexOf(id)],
-				"coord" : this.id_list.indexOf(id)
-			};
+	add: function(data) {
+		this.source_list.push(data);
+		if(data.retweeted_status) {
+			this.id_list.push(data.retweeted_status.id_str);
+			this.favorited_list.push(data.retweeted_status.favorited);
+			this.retweeted_list.push(data.retweeted_status.retweeted);
+			this.retweets_list.push([data]);//array
 		} else {
-			return undefined;
+			this.id_list.push(data.id_str);
+			this.favorited_list.push(data.favorited);
+			this.retweeted_list.push(data.retweeted);
+			this.retweets_list.push([]);//array
 		}
 	},
 	coord: function(coord) {
@@ -276,9 +339,21 @@ Container.prototype = {
 		if(this.id_list[coord]) {
 			return {
 				"id" : this.id_list[coord],
-				"real_id" : this.real_id_list[coord],
-				"coord" : coord
+				"coord" : coord,
+				"favorited" : this.favorited_list[coord],
+				"retweeted" : this.retweeted_list[coord],
+				"retweets" : this.retweets_list[coord],
+				"src" : this.source_list[coord]
 			};
+		} else {
+			return undefined;
+		}
+	},
+	id: function(id) {
+		id = String(id);
+		var coord = this.id_list.indexOf(id);
+		if(coord != -1) {
+			return this.coord(coord);
 		} else {
 			return undefined;
 		}
@@ -298,14 +373,13 @@ Container.prototype = {
 	},
 	select: function(item) {
 		var exist_index = -1;
-		$.each(this.selected, function(i, each_item) {
-			if(each_item.coord == item.coord) {
+		$.each(this.selected, function(i, item_each) {
+			if(item_each.coord == item.coord) {
 				exist_index = i;
 			}
 		});
 		if(exist_index == -1) {
 			this.selected.push(item);
-			// console.log(this.selected);
 			return this.selected;
 		} else {
 			return undefined;
@@ -313,8 +387,8 @@ Container.prototype = {
 	},
 	deselect: function(item) {
 		var delete_index = -1;
-		$.each(this.selected, function(i, each_item) {
-			if(each_item.coord == item.coord) {
+		$.each(this.selected, function(i, item_each) {
+			if(item_each.coord == item.coord) {
 				delete_index = i;
 			}
 		});
@@ -324,6 +398,22 @@ Container.prototype = {
 		} else {
 			return undefined;
 		}
+	},
+	retweet: function(item, data) {
+		item_index = item.coord;
+		if(this.retweets_list[item_index].length !== 0) {
+			console.log(this.retweets_list[item_index]);
+			this.retweets_list[item_index].forEach(function(data_each, i) {
+				if(data_each.retweeted_status.id_str == data.retweeted_status.id_str) {
+					return undefined;
+				}
+			}, this);
+		}
+		if(!(this.retweets_list[item_index] instanceof Array)) {
+			this.retweets_list[item_index] = [];//array
+		}
+		this.retweets_list[item_index].push(data);
+		return this.retweets_list[item_index];
 	}
 };
 
@@ -339,30 +429,37 @@ function Item() {
 Item.prototype = {
 	initialize: function(item_obj) {
 		this.initialized = false;
-		this.faved = false;
-		itemChunk.keys.forEach(function(key, i) {
-			this[key] = null;
-		}, this);
+		for(var key in itemChunk.init_obj){
+			this[key] = itemChunk.init_obj[key];
+		}
+		// console.log(jQuery.extend(true, {}, this));
 		if(!(item_obj)) {
 			item_obj = itemChunk.selected[0];
 		}
 		if(item_obj) {
 			var item = null;
-			var key;
 			if(item_obj.coord !== undefined) {
 				item = itemChunk.coord(item_obj.coord);
-				for(key in item) {
-					this[key] = item[key];
+				if(item) {
+					for(key in item) {
+						this[key] = item[key];
+					}
+					this.initialized = true;
+					return this;
+				} else {
+					return undefined;
 				}
-				this.initialized = true;
-				return this;
 			} else if(item_obj.id) {
 				item = itemChunk.id(item_obj.id);
-				for(key in item) {
-					this[key] = item[key];
+				if(item) {
+					for(key in item) {
+						this[key] = item[key];
+					}
+					this.initialized = true;
+					return this;
+				} else {
+					return undefined;
 				}
-				this.initialized = true;
-				return this;
 			} else {
 				return undefined;
 			}
@@ -379,6 +476,7 @@ Item.prototype = {
 		return true;
 	},
 	select: function() {
+		console.log(this);
 		if(this.check()) {
 			return itemChunk.select(this);
 		} else {
@@ -409,6 +507,9 @@ Item.prototype = {
 	},
 	prev: function() {
 		return this.rel_coord(-1);
+	},
+	retweet: function(data) {
+		this.retweets = itemChunk.retweet(this, data);
 	}
 };
 
@@ -430,17 +531,19 @@ Items.prototype = {
 		if(!(item_arr instanceof Array)) {
 			item_arr = [item_arr];
 		}
-		// console.log(item_arr);
 		if(item_arr[0]) {
 			item_arr.forEach(function(item_obj, i) {
 				this.initialized[i] = true;
-				if(item_obj.coord !== undefined) {
-					this.item[i] = new Item(item_obj);
-				} else if(item_obj.id) {
-					this.item[i] = new Item(item_obj);
+				if(item_obj.coord !== undefined || item_obj.id) {
+					var item = new Item(item_obj);
+					if(item.initialized) {
+						this.item[i] = item;
+						this.initialized[i] = true;
+					} else {
+						this.initialized[i] = false;
+					}
 				} else {
 					this.initialized[i] = false;
-					this.item[i] = undefined;
 				}
 			}, this);
 			return this;
@@ -448,6 +551,11 @@ Items.prototype = {
 			this.initialized[0] = false;
 			return undefined;
 		}
+	},
+	all_initialized: function() {
+		return this.initialized.every(function(v) {
+			return v === true;
+		});
 	},
 	select: function() {
 		var item_selected = [];
@@ -474,6 +582,11 @@ Items.prototype = {
 	},
 	last: function() {
 		return this.item[this.item.length - 1];
+	},
+	retweet: function(data) {
+		$.each(this.item, function(i, item) {
+			item.retweet(data);
+		});
 	}
 };
 
@@ -483,16 +596,27 @@ Items.prototype = {
 String.prototype.replace_with = function(obj) {
 	var str = this;
 	for(var key in obj) {
-		str = str.replace(key, obj[key]);
+		str = str.replace(new RegExp(key, "g"), obj[key]);
 	}
 	return str;
 };
 
 
+// set my data
+
+var my_data;
+
+methods.set_my_data = function(data) {
+	mydata = data;
+	console.log(data);
+};
+
+
 // show tweet on the timeline.
 
-var default_templete = '<div class="item %id% r%real_id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="screen_name">%screen_name%</div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_templete = '<div class="item %id% r%real_id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="screen_name">%screen_name%</div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
 var auto_scrolling = false;
 
 methods.show_tweet = function (data) {
@@ -504,30 +628,43 @@ methods.show_tweet = function (data) {
 		id = data.retweeted_status.id_str;
 		item_html = retweet_templete.replace_with({
 			"%screen_name%" : data.retweeted_status.user.screen_name,
+			"%name%" : data.retweeted_status.user.name,
 			"%text%" : data.retweeted_status.text.replace(/\n/g,"<br>"),
 			"%created_at%" : data.retweeted_status.created_at.hour + ":" + data.retweeted_status.created_at.min + ":" + data.retweeted_status.created_at.sec,
 			"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
 			"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-			"%id%" : data.id_str,
-			"%real_id%" : id
+			"%id%" : id
 		});
+		item = new Item({"id" : id});
+		if(item.initialized) {
+			item.retweet(data);
+			if(Object.keys(item.retweets).length == 1) {
+				item_html = retweet_img_templete.replace_with({
+					"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
+					"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
+				});
+				$("." + id).find(".img_wrap").replaceWith(item_html);
+			}
+			return;
+		}
 	} else {
 		id = data.id_str;
 		item_html = default_templete.replace_with({
 			"%screen_name%" : data.user.screen_name,
+			"%name%" : data.user.name,
 			"%text%" : data.text.replace(/\n/g,"<br>"),
 			"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
 			"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-			"%id%" : data.id_str,
-			"%real_id%" : id
+			"%id%" : id
 		});
 	}
+	itemChunk.add(data);
 	$container.append(item_html);
 	if(is_bottom) {
 		auto_scrolling = true;
 		$body.stop(true, false).animate({ scrollTop: $body.height() - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
-	$("." + data.id_str).click(function(event) {
+	$("." + id).click(function(event) {
 		if(event.shiftKey) {
 			send("expand_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
 		} else if(event.metaKey) {
@@ -537,6 +674,5 @@ methods.show_tweet = function (data) {
 		}
 	});
 	// console.log("'" + id + "'");
-	itemChunk.add(data.id_str, id);
 	document.title = itemChunk.id_list.length;
 };
