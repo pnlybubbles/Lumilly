@@ -89,13 +89,13 @@ module App
 		end
 
 		def update(text, *id)
-			if(! id.empty?)
+			if(id.empty? && id[0])
+				@access_token.post('/statuses/update.json', 
+				'status' => text)
+			else
 				@access_token.post('/statuses/update.json', 
 				'status' => text, 
 				'in_reply_to_status_id' => id[0])
-			else
-				@access_token.post('/statuses/update.json', 
-				'status' => text)
 			end
 		end
 	end
@@ -226,27 +226,27 @@ module App
 		end
 
 		def favorite(argu)
-			id = argu[0]
-			@twitter_api.favorite(id)
+			@twitter_api.favorite(argu[0])
 		end
 
 		def unfavorite(argu)
-			id = argu[0]
-			@twitter_api.unfavorite(id)
+			@twitter_api.unfavorite(argu[0])
 		end
 
 		def retweet(argu)
-			id = argu[0]
-			@twitter_api.retweet(id)
+			@twitter_api.retweet(argu[0])
 		end
 
 		def destroy(argu)
-			id = argu[0]
-			@twitter_api.destroy(id)
+			@twitter_api.destroy(argu[0])
 		end
 
 		def verify_credentials(argu)
 			return "set_my_data", @twitter_api.verify_credentials
+		end
+
+		def update(argu)
+			@twitter_api.update(argu[0], argu[1]);
 		end
 	end
 end

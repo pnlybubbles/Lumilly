@@ -1,32 +1,15 @@
 var $container;
 var $body;
+var container_margin;
+var $post_textarea;
 
 function load () {
-	load_websocket();
-	set_events();
 	$container = $(".container");
 	$body = $("body");
-	// console.log("====");
-	// console.log(new Array(1));
-	// console.log(new Array(1).length);
-	// console.log(new Array());
-	// console.log(new Array().length);
-	// console.log([]);
-	// console.log([].length);
-	// console.log([undefined]);
-	// console.log([undefined].length);
-	// console.log(new Array("ruby"));
-	// console.log(["ruby"]);
-	// console.log(new Array(2));
-	// console.log([2]);
-	// a = {
-	// 	"a" : new Array()
-	// };
-	// b = {
-	// 	"a" : []
-	// };
-	// console.log(a);
-	// console.log(b);
+	container_margin = parseInt($container.css("margin-bottom"), 10);
+	$post_textarea = $(".post_textarea");
+	load_websocket();
+	set_events();
 }
 
 
@@ -104,12 +87,15 @@ function tell (method, argu) {
 // set up events
 
 var mouse_wheeling = false;
+var typing_event = false;
 
 function set_events () {
 	//get keycode
 	$(window).keydown(function(event) {
-		key = event.keyCode;
-		with_key = "";
+		var key = event.keyCode;
+		var with_key = "";
+		var timeline = true;
+		var typing = false;
 		switch(key) {
 			case 38:
 			method = "go_prev";
@@ -124,21 +110,36 @@ function set_events () {
 			with_key = "sm";
 			method = "retweet";
 			break;
+			case 9:
+			typing = true;
+			method = "toggle_textarea_focus";
+			break;
+			case 13:
+			typing = true;
+			timeline = false;
+			method = "enter_to_post";
+			break;
 			default:
 			method = "key_" + key;
 		}
 		if(event.shiftKey) {
 			with_key = with_key.replace(/s/, "");
-		} else if(event.ctrlKey) {
+		}
+		if(event.ctrlKey) {
 			with_key = with_key.replace(/c/, "");
-		} else if(event.metaKey) {
+		}
+		if(event.metaKey) {
 			with_key = with_key.replace(/m/, "");
 		}
 		if(with_key === "") {
-			send(method);
-		}
-		if(event.preventDefault) {
-			event.preventDefault();
+			if(!(typing_event) || typing) {
+				if(event.preventDefault) {
+					event.preventDefault();
+				}
+			}
+			if(timeline && !(typing_event) || typing && typing_event) {
+				send(method);
+			}
 		}
 	});
 	$(window).mousewheel(function(event, delta) {
@@ -146,6 +147,11 @@ function set_events () {
 			$body.stop();
 			auto_scrolling = false;
 		}
+	});
+	$post_textarea.focus(function() {
+		typing_event = true;
+	}).blur(function() {
+		typing_event = false;
 	});
 }
 
@@ -177,11 +183,10 @@ methods.go_next = function() {
 		var next_item = items.first().next();
 		if(next_item) {
 			send("move_cursor", next_item);
-			console.log(next_item);
 			if($("." + next_item.id).offset().top < $body.scrollTop() || ($("." + next_item.id).offset().top + $("." + next_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
 				scroll_top = ($("." + next_item.id).offset().top + $("." + next_item.id).height()) - (window.innerHeight / 2);
-				if(scroll_top > ($body.height() - window.innerHeight)) {
-					scroll_top = ($body.height() - window.innerHeight);
+				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
+					scroll_top = ($container.height() + container_margin - window.innerHeight);
 				}
 				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 			}
@@ -217,6 +222,22 @@ methods.retweet = function() {
 			}
 		}
 	});
+};
+
+//toggle textarea focus
+methods.toggle_textarea_focus = function() {
+	if(document.activeElement.className == "post_textarea") {
+		$post_textarea.blur();
+	} else {
+		$post_textarea.focus();
+	}
+};
+
+//enter to post
+methods.enter_to_post = function() {
+	text = $post_textarea.val();
+	$post_textarea.val("");
+	tell("update", text);
 };
 
 
@@ -402,7 +423,6 @@ Container.prototype = {
 	retweet: function(item, data) {
 		item_index = item.coord;
 		if(this.retweets_list[item_index].length !== 0) {
-			console.log(this.retweets_list[item_index]);
 			this.retweets_list[item_index].forEach(function(data_each, i) {
 				if(data_each.retweeted_status.id_str == data.retweeted_status.id_str) {
 					return undefined;
@@ -476,7 +496,6 @@ Item.prototype = {
 		return true;
 	},
 	select: function() {
-		console.log(this);
 		if(this.check()) {
 			return itemChunk.select(this);
 		} else {
@@ -621,7 +640,7 @@ var auto_scrolling = false;
 
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
-	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height == $body.height());
+	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var item_html;
 	var id;
 	if(data.retweeted_status) {
@@ -662,7 +681,7 @@ methods.show_tweet = function (data) {
 	$container.append(item_html);
 	if(is_bottom) {
 		auto_scrolling = true;
-		$body.stop(true, false).animate({ scrollTop: $body.height() - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
+		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
 	$("." + id).click(function(event) {
 		if(event.shiftKey) {
