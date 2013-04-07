@@ -116,7 +116,7 @@ function set_events () {
 			method = {"favorite" : ["tl"]};
 			break;
 			case 86:
-			method = {"retweet" : ["tl", "shift", "meta"]};
+			method = {"retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
 			break;
 			case 9:
 			method = {"toggle_textarea_focus" : ["both"]};
@@ -128,6 +128,9 @@ function set_events () {
 		}
 		if(event.shiftKey) {
 			with_state.push("shift");
+		}
+		if(event.altKey) {
+			with_state.push("alt");
 		}
 		if(event.ctrlKey) {
 			with_state.push("ctrl");
@@ -177,7 +180,7 @@ function set_events () {
 // key controll
 //=========================
 
-//go prev item
+// go prev item
 
 methods.go_prev = function() {
 	var items = new Items();
@@ -204,7 +207,7 @@ methods.go_prev = function() {
 };
 
 
-//go next item
+// go next item
 
 methods.go_next = function() {
 	var items = new Items();
@@ -231,7 +234,8 @@ methods.go_next = function() {
 };
 
 
-//favorite item
+// favorite item
+
 methods.favorite = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
@@ -248,7 +252,7 @@ methods.favorite = function() {
 };
 
 
-//retweet item
+// retweet item
 
 methods.retweet = function() {
 	var items = new Items();
@@ -264,7 +268,7 @@ methods.retweet = function() {
 };
 
 
-//toggle textarea focus
+// toggle textarea focus
 
 methods.toggle_textarea_focus = function() {
 	if(document.activeElement.className == "post_textarea") {
@@ -275,7 +279,7 @@ methods.toggle_textarea_focus = function() {
 };
 
 
-//enter to post
+// enter to post
 
 methods.enter_to_post = function() {
 	text = $post_textarea.val();
@@ -292,14 +296,14 @@ methods.enter_to_post = function() {
 };
 
 
-//type newline
+// type newline
 
 methods.type_newline = function() {
 	$post_textarea.val($post_textarea.val() + "\n");
 };
 
 
-//create reply
+// create reply
 
 var in_reply_to = {
 	"id" : [null],
@@ -318,6 +322,31 @@ methods.create_reply = function() {
 	in_reply_to["id"] = reply_ids;
 	$post_textarea.focus();
 	post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
+};
+
+
+// unofficial retweet
+
+var unofficial_retweet_templete = " RT @%screen_name%: %text%";
+
+methods.unofficial_retweet = function() {
+	var items = new Items();
+	var reply_screen_names = [];
+	var reply_ids = [];
+	var reply_texts = [];
+	console.log(items);
+	$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
+	$.each(items.item, function(i, item) { reply_ids[i] = item.src.id_str; });
+	$.each(items.item, function(i, item) { reply_texts[i] = item.src.text; });
+	var unofficial_retweet_text = unofficial_retweet_templete.replace_with({
+		"%screen_name%" : reply_screen_names[0],
+		"%text%" : reply_texts[0]
+	});
+	$post_textarea.val($post_textarea.val() + unofficial_retweet_text);
+	in_reply_to["screen_name"] = reply_screen_names;
+	in_reply_to["id"] = reply_ids;
+	$post_textarea.focus();
+	post_textarea.setSelectionRange(0, 0);
 };
 
 
@@ -428,17 +457,18 @@ Container.prototype = {
 		}, this);
 	},
 	add: function(data) {
-		this.source_list.push(data);
 		if(data.retweeted_status) {
 			this.id_list.push(data.retweeted_status.id_str);
 			this.favorited_list.push(data.retweeted_status.favorited);
 			this.retweeted_list.push(data.retweeted_status.retweeted);
 			this.retweets_list.push([data]);//array
+			this.source_list.push(data.retweeted_status);
 		} else {
 			this.id_list.push(data.id_str);
 			this.favorited_list.push(data.favorited);
 			this.retweeted_list.push(data.retweeted);
 			this.retweets_list.push([]);//array
+			this.source_list.push(data);
 		}
 	},
 	coord: function(coord) {
