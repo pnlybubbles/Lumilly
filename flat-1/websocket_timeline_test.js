@@ -10,6 +10,7 @@ function load () {
 	container_margin = parseInt($container.css("margin-bottom"), 10);
 	$post_textarea = $(".post_textarea");
 	post_textarea = document.getElementsByClassName('post_textarea')[0];
+	$post_textarea_count = $(".post_textarea_count");
 	load_websocket();
 	set_events();
 }
@@ -100,7 +101,7 @@ var mouse_wheeling = false;
 var typing_event = false;
 
 function set_events () {
-	//get keycode
+	// get keycode
 	$(window).keydown(function(event) {
 		var key = event.keyCode;
 		var with_state = [];
@@ -161,6 +162,23 @@ function set_events () {
 				}
 			}
 		}
+
+		// always send under typing "keydown"
+		if(typing_event) {
+			var on_typing_methods = ["update_post_textarea_count", "check_in_reply_to"];
+			on_typing_methods.forEach(function(method, i) {
+				send(method);
+			});
+		}
+	});
+	// always send under typing "keyup"
+	$(window).keyup(function(event) {
+		if(typing_event) {
+			var on_typing_methods = ["update_post_textarea_count", "check_in_reply_to"];
+			on_typing_methods.forEach(function(method, i) {
+				send(method);
+			});
+		}
 	});
 	$(window).mousewheel(function(event, delta) {
 		if(delta > 0) {
@@ -170,8 +188,10 @@ function set_events () {
 	});
 	$post_textarea.focus(function() {
 		typing_event = true;
+		send("update_post_textarea_count"); // show post_textarea_count
 	}).blur(function() {
 		typing_event = false;
+		$post_textarea_count.text(""); // hide post_textarea_count
 	});
 }
 
@@ -188,7 +208,6 @@ methods.go_prev = function() {
 	if(!(items.all_initialized())) {
 		items = new Items(itemChunk.last());
 		prev_item = items.first();
-		console.log(items);
 	} else {
 		prev_item = items.first().prev();
 	}
@@ -215,7 +234,6 @@ methods.go_next = function() {
 	if(!(items.all_initialized())) {
 		items = new Items(itemChunk.last());
 		next_item = items.first();
-		console.log(items);
 	} else {
 		next_item = items.first().next();
 	}
@@ -284,14 +302,17 @@ methods.toggle_textarea_focus = function() {
 methods.enter_to_post = function() {
 	text = $post_textarea.val();
 	var in_reply_to_id = null;
-	if(in_reply_to["screen_name"].every(function(v) { return text.indexOf(v) != -1; })) {
-		in_reply_to_id = in_reply_to["id"][0];
+	if(in_reply_to["screen_name"]) {
+		if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
+			in_reply_to_id = in_reply_to["id"];
+		}
 	}
+	console.log(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])")));
 	$post_textarea.val("");
 	tell("update", [text, in_reply_to_id]);
 	in_reply_to = {
-		"id" : [null],
-		"screen_name" : [null]
+		"id" : null,
+		"screen_name" : null
 	};
 };
 
@@ -306,20 +327,17 @@ methods.type_newline = function() {
 // create reply
 
 var in_reply_to = {
-	"id" : [null],
-	"screen_name" : [null]
+	"id" : null,
+	"screen_name" : null
 };
 
 methods.create_reply = function() {
 	var items = new Items();
 	var reply_screen_names = [];
-	var reply_ids = [];
-	console.log(items);
 	$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
-	$.each(items.item, function(i, item) { reply_ids[i] = item.src.id_str; });
 	$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
-	in_reply_to["screen_name"] = reply_screen_names;
-	in_reply_to["id"] = reply_ids;
+	in_reply_to["screen_name"] = items.first().src.user.screen_name;
+	in_reply_to["id"] = items.first().src.id_str;
 	$post_textarea.focus();
 	post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
 };
@@ -331,22 +349,47 @@ var unofficial_retweet_templete = " RT @%screen_name%: %text%";
 
 methods.unofficial_retweet = function() {
 	var items = new Items();
-	var reply_screen_names = [];
-	var reply_ids = [];
-	var reply_texts = [];
-	console.log(items);
-	$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
-	$.each(items.item, function(i, item) { reply_ids[i] = item.src.id_str; });
-	$.each(items.item, function(i, item) { reply_texts[i] = item.src.text; });
+	var reply_screen_name;
+	var reply_id;
+	var reply_text;
+	reply_screen_name = items.first().src.user.screen_name;
+	reply_id = items.first().src.id_str;
+	reply_text = items.first().src.text;
 	var unofficial_retweet_text = unofficial_retweet_templete.replace_with({
-		"%screen_name%" : reply_screen_names[0],
-		"%text%" : reply_texts[0]
+		"%screen_name%" : reply_screen_name,
+		"%text%" : reply_text
 	});
 	$post_textarea.val($post_textarea.val() + unofficial_retweet_text);
-	in_reply_to["screen_name"] = reply_screen_names;
-	in_reply_to["id"] = reply_ids;
+	in_reply_to["screen_name"] = reply_screen_name;
+	in_reply_to["id"] = reply_id;
 	$post_textarea.focus();
 	post_textarea.setSelectionRange(0, 0);
+};
+
+
+// update post_textarea count
+
+methods.update_post_textarea_count = function() {
+	var count = 140 - $post_textarea.val().length;
+	if(count < 0) {
+		$post_textarea_count.css({"color" : "rgb(255, 54, 46)"});
+	} else {
+		$post_textarea_count.css({"color" : "rgb(130, 130, 130)"});
+	}
+	$post_textarea_count.text(count);
+};
+
+
+// check in_reply_to
+
+methods.check_in_reply_to = function() {
+	var screen_names_in_textarea = $post_textarea.val().match(/@[0-9A-Za-z_]+/g);
+	if(!(screen_names_in_textarea) || screen_names_in_textarea && screen_names_in_textarea.indexOf("@" + in_reply_to["screen_name"]) == -1) {
+		in_reply_to = {
+			"id" : null,
+			"screen_name" : null
+		};
+	}
 };
 
 
@@ -359,7 +402,7 @@ methods.unofficial_retweet = function() {
 methods.move_cursor = function(item_obj) {
 	var before_items = new Items();
 	var set_items = new Items(item_obj);
-	if(set_items.initialized) {
+	if(set_items.all_initialized()) {
 		if(before_items.all_initialized()) {
 			send("deselect_cursor", before_items);
 		}
@@ -374,7 +417,7 @@ methods.move_cursor = function(item_obj) {
 
 methods.add_cursor = function(item_obj) {
 	var set_items = new Items(item_obj);
-	if(set_items.initialized) {
+	if(set_items.all_initialized()) {
 		send("select_cursor", set_items);
 	} else {
 		throw new Error("item not found: " + JSON.stringify(set_items));
@@ -415,7 +458,6 @@ methods.select_cursor = function(items) {
 	$.each(items.item, function(i, item) {
 		$("." + item.id).find(".item_container").addClass("selected");
 	});
-	// console.log(items);
 };
 
 
@@ -429,7 +471,6 @@ methods.deselect_cursor = function(items) {
 	$.each(items.item, function(i, item) {
 		$("." + item.id).find(".item_container").removeClass("selected");
 	});
-	// console.log(items);
 };
 
 
@@ -685,9 +726,32 @@ Items.prototype = {
 						this.item[i] = item;
 						this.initialized[i] = true;
 					} else {
+						this.item[i] = null;
 						this.initialized[i] = false;
 					}
 				} else {
+					this.item[i] = null;
+					this.initialized[i] = false;
+				}
+			}, this);
+			var coords = [];
+			var messy_items = {};
+			this.item.forEach(function(item, i) {
+				if(item) {
+					coords[i] = item.coord;
+					messy_items[item.coord] = item;
+				}
+			}, this);
+			coords.sort(function(a, b) { return a - b; });
+			for(var i = 0; i <= Object.keys(this.item).length - coords.length - 1; i++) {
+				coords.push(null);
+			}
+			coords.forEach(function(coord, i) {
+				if(coord !== null) {
+					this.item[i] = messy_items[coord];
+					this.initialized[i] = true;
+				} else {
+					this.item[i] = null;
 					this.initialized[i] = false;
 				}
 			}, this);
@@ -703,18 +767,26 @@ Items.prototype = {
 		});
 	},
 	select: function() {
-		var item_selected = [];
-		$.each(this.item, function(i, item) {
-			item_selected[i] = item.select();
-		});
-		return item_selected;
+		if(this.all_initialized()) {
+			var item_selected = [];
+			$.each(this.item, function(i, item) {
+				item_selected[i] = item.select();
+			});
+			return item_selected;
+		} else {
+			throw new Error("not initialized");
+		}
 	},
 	deselect: function() {
-		var item_deselected = [];
-		$.each(this.item, function(i, item) {
-			item_deselected[i] = item.deselect();
-		});
-		return item_deselected;
+		if(this.all_initialized()) {
+			var item_deselected = [];
+			$.each(this.item, function(i, item) {
+				item_deselected[i] = item.deselect();
+			});
+			return item_deselected;
+		} else {
+			throw new Error("not initialized");
+		}
 	},
 	next: function() {
 		return this.last().next();
@@ -723,15 +795,28 @@ Items.prototype = {
 		return this.first().prev();
 	},
 	first: function() {
-		return this.item[0];
+		if(this.all_initialized()) {
+			return this.item[0];
+		} else {
+			throw new Error("not initialized");
+		}
 	},
 	last: function() {
-		return this.item[this.item.length - 1];
+		if(this.all_initialized()) {
+			return this.item[this.item.length - 1];
+		} else {
+			throw new Error("not initialized");
+		}
 	},
 	retweet: function(data) {
-		$.each(this.item, function(i, item) {
-			item.retweet(data);
-		});
+		if(this.all_initialized()) {
+			$.each(this.item, function(i, item) {
+				item.retweet(data);
+			});
+			return this;
+		} else {
+			throw new Error("not initialized");
+		}
 	}
 };
 
@@ -815,7 +900,8 @@ methods.show_tweet = function (data) {
 		auto_scrolling = true;
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
-	$("." + id).click(function(event) {
+	// $("." + id).click(function(event) {
+	document.getElementsByClassName(id)[0].addEventListener("click", function() {
 		if(event.shiftKey) {
 			send("expand_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
 		} else if(event.metaKey) {
@@ -823,7 +909,7 @@ methods.show_tweet = function (data) {
 		} else {
 			send("move_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
 		}
-	});
+	}, false);
 	// console.log("'" + id + "'");
 	document.title = itemChunk.id_list.length;
 };
