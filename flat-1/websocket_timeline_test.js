@@ -2,18 +2,22 @@ var $container;
 var $body;
 var container_margin;
 var $post_textarea;
+var post_textarea;
 
 function load () {
 	$container = $(".container");
 	$body = $("body");
 	container_margin = parseInt($container.css("margin-bottom"), 10);
 	$post_textarea = $(".post_textarea");
+	post_textarea = document.getElementsByClassName('post_textarea')[0];
 	load_websocket();
 	set_events();
 }
 
 
-// sebsocket
+//=========================
+// websocket
+//=========================
 
 var ws;
 
@@ -44,6 +48,10 @@ function on_message (evt) {
 	}
 }
 
+
+//=========================
+// methods exchanger
+//=========================
 
 // send
 
@@ -84,7 +92,9 @@ function tell (method, argu) {
 }
 
 
-// set up events
+//=========================
+// setup events
+//=========================
 
 var mouse_wheeling = false;
 var typing_event = false;
@@ -93,52 +103,59 @@ function set_events () {
 	//get keycode
 	$(window).keydown(function(event) {
 		var key = event.keyCode;
-		var with_key = "";
-		var timeline = true;
-		var typing = false;
+		var with_state = [];
+		var method = {"null" : []};
 		switch(key) {
 			case 38:
-			method = "go_prev";
+			method = {"go_prev" : ["tl"]};
 			break;
 			case 40:
-			method = "go_next";
+			method = {"go_next" : ["tl"]};
 			break;
 			case 70:
-			method = "favorite";
+			method = {"favorite" : ["tl"]};
 			break;
 			case 86:
-			with_key = "sm";
-			method = "retweet";
+			method = {"retweet" : ["tl", "shift", "meta"]};
 			break;
 			case 9:
-			typing = true;
-			method = "toggle_textarea_focus";
+			method = {"toggle_textarea_focus" : ["both"]};
 			break;
 			case 13:
-			typing = true;
-			timeline = false;
-			method = "enter_to_post";
+			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl"], "create_reply" : ["tl"]};
 			break;
 			default:
-			method = "key_" + key;
 		}
 		if(event.shiftKey) {
-			with_key = with_key.replace(/s/, "");
+			with_state.push("shift");
 		}
 		if(event.ctrlKey) {
-			with_key = with_key.replace(/c/, "");
+			with_state.push("ctrl");
 		}
 		if(event.metaKey) {
-			with_key = with_key.replace(/m/, "");
+			with_state.push("meta");
 		}
-		if(with_key === "") {
-			if(!(typing_event) || typing) {
-				if(event.preventDefault) {
-					event.preventDefault();
+		if(typing_event) {
+			with_state.push("type");
+		} else {
+			with_state.push("tl");
+		}
+		with_state = with_state.sort();
+		for(var method_key in method) {
+			var method_with_state = method[method_key].map(function(v) {
+				if(v == "both") {
+					return typing_event ? "type" : "tl";
+				} else { return v; }
+			}).sort();
+			if(JSON.stringify(method_with_state) == JSON.stringify(with_state)) {
+				if(!(typing_event) || method_with_state.indexOf("type") != -1) {
+					if(event.preventDefault) {
+						event.preventDefault();
+					}
 				}
-			}
-			if(timeline && !(typing_event) || typing && typing_event) {
-				send(method);
+				if(method_with_state.indexOf("tl") != -1 && !(typing_event) || method_with_state.indexOf("type") != -1 && typing_event) {
+					send(method_key);
+				}
 			}
 		}
 	});
@@ -156,13 +173,23 @@ function set_events () {
 }
 
 
+//=========================
 // key controll
+//=========================
 
 //go prev item
+
 methods.go_prev = function() {
 	var items = new Items();
+	var prev_item;
+	if(!(items.all_initialized())) {
+		items = new Items(itemChunk.last());
+		prev_item = items.first();
+		console.log(items);
+	} else {
+		prev_item = items.first().prev();
+	}
 	if(items.all_initialized()) {
-		var prev_item = items.first().prev();
 		if(prev_item) {
 			send("move_cursor", prev_item);
 			if($("." + prev_item.id).offset().top < $body.scrollTop() || ($("." + prev_item.id).offset().top + $("." + prev_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
@@ -176,11 +203,20 @@ methods.go_prev = function() {
 	}
 };
 
+
 //go next item
+
 methods.go_next = function() {
 	var items = new Items();
+	var next_item;
+	if(!(items.all_initialized())) {
+		items = new Items(itemChunk.last());
+		next_item = items.first();
+		console.log(items);
+	} else {
+		next_item = items.first().next();
+	}
 	if(items.all_initialized()) {
-		var next_item = items.first().next();
 		if(next_item) {
 			send("move_cursor", next_item);
 			if($("." + next_item.id).offset().top < $body.scrollTop() || ($("." + next_item.id).offset().top + $("." + next_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
@@ -193,6 +229,7 @@ methods.go_next = function() {
 		}
 	}
 };
+
 
 //favorite item
 methods.favorite = function() {
@@ -210,7 +247,9 @@ methods.favorite = function() {
 	});
 };
 
+
 //retweet item
+
 methods.retweet = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
@@ -224,7 +263,9 @@ methods.retweet = function() {
 	});
 };
 
+
 //toggle textarea focus
+
 methods.toggle_textarea_focus = function() {
 	if(document.activeElement.className == "post_textarea") {
 		$post_textarea.blur();
@@ -233,13 +274,56 @@ methods.toggle_textarea_focus = function() {
 	}
 };
 
+
 //enter to post
+
 methods.enter_to_post = function() {
 	text = $post_textarea.val();
+	var in_reply_to_id = null;
+	if(in_reply_to["screen_name"].every(function(v) { return text.indexOf(v) != -1; })) {
+		in_reply_to_id = in_reply_to["id"][0];
+	}
 	$post_textarea.val("");
-	tell("update", text);
+	tell("update", [text, in_reply_to_id]);
+	in_reply_to = {
+		"id" : [null],
+		"screen_name" : [null]
+	};
 };
 
+
+//type newline
+
+methods.type_newline = function() {
+	$post_textarea.val($post_textarea.val() + "\n");
+};
+
+
+//create reply
+
+var in_reply_to = {
+	"id" : [null],
+	"screen_name" : [null]
+};
+
+methods.create_reply = function() {
+	var items = new Items();
+	var reply_screen_names = [];
+	var reply_ids = [];
+	console.log(items);
+	$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
+	$.each(items.item, function(i, item) { reply_ids[i] = item.src.id_str; });
+	$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
+	in_reply_to["screen_name"] = reply_screen_names;
+	in_reply_to["id"] = reply_ids;
+	$post_textarea.focus();
+	post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
+};
+
+
+//=========================
+// cursor methods
+//=========================
 
 // move item
 
@@ -320,7 +404,9 @@ methods.deselect_cursor = function(items) {
 };
 
 
+//=========================
 // Container class
+//=========================
 
 function Container() {
     this.initialize.apply(this, arguments);
@@ -434,11 +520,19 @@ Container.prototype = {
 		}
 		this.retweets_list[item_index].push(data);
 		return this.retweets_list[item_index];
+	},
+	first: function() {
+		return this.coord(0);
+	},
+	last: function() {
+		return this.coord(this.id_list.length - 1);
 	}
 };
 
 
+//=========================
 // Item class
+//=========================
 
 var itemChunk = new Container();
 
@@ -533,7 +627,9 @@ Item.prototype = {
 };
 
 
+//=========================
 // Items class
+//=========================
 
 function Items() {
     this.initialize.apply(this, arguments);
@@ -610,7 +706,9 @@ Items.prototype = {
 };
 
 
-// replace_with method
+//=========================
+// replace_with methods
+//=========================
 
 String.prototype.replace_with = function(obj) {
 	var str = this;
@@ -621,7 +719,9 @@ String.prototype.replace_with = function(obj) {
 };
 
 
-// set my data
+//=========================
+// set mydata
+//=========================
 
 var my_data;
 
@@ -631,7 +731,9 @@ methods.set_my_data = function(data) {
 };
 
 
-// show tweet on the timeline.
+//=========================
+// show tweets on timeline
+//=========================
 
 var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
 var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
