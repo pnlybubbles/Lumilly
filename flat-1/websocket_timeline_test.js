@@ -106,27 +106,32 @@ function set_events () {
 		var key = event.keyCode;
 		var with_state = [];
 		var method = {"null" : []};
+		// get method which assign to keys
 		switch(key) {
-			case 38:
+			case 38: //up
 			method = {"go_prev" : ["tl"]};
 			break;
-			case 40:
+			case 40: //down
 			method = {"go_next" : ["tl"]};
 			break;
-			case 70:
+			case 70: //f
 			method = {"favorite" : ["tl"]};
 			break;
-			case 86:
+			case 86: //v
 			method = {"retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
 			break;
-			case 9:
+			case 9: //tab
 			method = {"toggle_textarea_focus" : ["both"]};
 			break;
-			case 13:
+			case 13: //enter
 			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl"], "create_reply" : ["tl"]};
+			break;
+			case 67: //c
+			method = {"copy_tweet" : ["tl", "meta"]};
 			break;
 			default:
 		}
+		// get decoration keys
 		if(event.shiftKey) {
 			with_state.push("shift");
 		}
@@ -145,6 +150,7 @@ function set_events () {
 			with_state.push("tl");
 		}
 		with_state = with_state.sort();
+		// check method's running condition
 		for(var method_key in method) {
 			var method_with_state = method[method_key].map(function(v) {
 				if(v == "both") {
@@ -162,9 +168,9 @@ function set_events () {
 				}
 			}
 		}
-
 		// always send under typing "keydown"
 		if(typing_event) {
+			// update the counter of textarea and check in_reply_to user in text
 			var on_typing_methods = ["update_post_textarea_count", "check_in_reply_to"];
 			on_typing_methods.forEach(function(method, i) {
 				send(method);
@@ -174,18 +180,21 @@ function set_events () {
 	// always send under typing "keyup"
 	$(window).keyup(function(event) {
 		if(typing_event) {
+			// update the counter of textarea and check in_reply_to user in text
 			var on_typing_methods = ["update_post_textarea_count", "check_in_reply_to"];
 			on_typing_methods.forEach(function(method, i) {
 				send(method);
 			});
 		}
 	});
+	// mousewheel to stop timeline animation
 	$(window).mousewheel(function(event, delta) {
 		if(delta > 0) {
 			$body.stop();
 			auto_scrolling = false;
 		}
 	});
+	// behavior on focus to post_textarea
 	$post_textarea.focus(function() {
 		typing_event = true;
 		send("update_post_textarea_count"); // show post_textarea_count
@@ -307,7 +316,6 @@ methods.enter_to_post = function() {
 			in_reply_to_id = in_reply_to["id"];
 		}
 	}
-	console.log(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])")));
 	$post_textarea.val("");
 	tell("update", [text, in_reply_to_id]);
 	in_reply_to = {
@@ -390,6 +398,18 @@ methods.check_in_reply_to = function() {
 			"screen_name" : null
 		};
 	}
+};
+
+
+// copy tweet
+
+methods.copy_tweet = function() {
+	var items = new Items();
+	texts = [];
+	items.item.forEach(function(item, i) {
+		texts.push(item.src.text);
+	});
+	tell("copy", texts.join(" "));
 };
 
 

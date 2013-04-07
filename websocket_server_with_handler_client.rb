@@ -248,6 +248,10 @@ module App
 		def update(argu)
 			@twitter_api.update(argu[0], argu[1]);
 		end
+
+		def copy(argu)
+			system("printf '#{argu[0].strip}' | pbcopy");
+		end
 	end
 end
 
