@@ -129,8 +129,12 @@ function set_events () {
 			case 67: //c
 			method = {"copy_tweet" : ["tl", "meta"]};
 			break;
+			case 78: //n
+			method = {"create_new_tweet" : ["both", "meta"]};
+			break;
 			default:
 		}
+		// console.log(method);
 		// get decoration keys
 		if(event.shiftKey) {
 			with_state.push("shift");
@@ -160,6 +164,7 @@ function set_events () {
 			if(JSON.stringify(method_with_state) == JSON.stringify(with_state)) {
 				if(!(typing_event) || method_with_state.indexOf("type") != -1) {
 					if(event.preventDefault) {
+						// console.log("prevented");
 						event.preventDefault();
 					}
 				}
@@ -314,13 +319,13 @@ methods.go_next = function() {
 methods.favorite = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
-		if(!(item.favorited)) {
+		if(!(item.favorite())) {
 			tell("favorite", item.id);
-			item.favorited = true;
+			item.favorite(true);
 		} else {
 			if(items.item.length == 1) {
 				tell("unfavorite", item.id);
-				item.favorited = false;
+				item.favorite(false);
 			}
 		}
 	});
@@ -446,6 +451,14 @@ methods.check_in_reply_to = function() {
 			"screen_name" : null
 		};
 	}
+};
+
+
+// create new tweet
+
+methods.create_new_tweet = function() {
+	$post_textarea.focus();
+	post_textarea.setSelectionRange(0, post_textarea.value.length);
 };
 
 
@@ -664,6 +677,11 @@ Container.prototype = {
 		this.retweets_list[item_index].push(data);
 		return this.retweets_list[item_index];
 	},
+	favorite: function(item, tf) {
+		item_index = item.coord;
+		this.favorited_list[item_index] = !(!(tf));
+		return !(!(tf));
+	},
 	first: function() {
 		return this.coord(0);
 	},
@@ -766,6 +784,15 @@ Item.prototype = {
 	},
 	retweet: function(data) {
 		this.retweets = itemChunk.retweet(this, data);
+	},
+	favorite: function(tf) {
+		if(tf === undefined) {
+			return this.favorited;
+		} else {
+			this.favorited = !(!(tf));
+			itemChunk.favorite(this, this.favorited);
+			return this.favorited;
+		}
 	}
 };
 
