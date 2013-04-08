@@ -207,19 +207,20 @@ function set_events () {
 		typing_event = false;
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
-	// get className item from mouse offset and bind event
-	// $container.bind("mousemove", set_event_from_mouse_offset);
 	$container.click(function(event) {
 		// console.log(event);
-		item = set_event_from_mouse_offset(event);
+		item = get_item_from_mouse_offset(event);
 		// console.log(item);
 		if(item) {
-			item.elm.click();
+			item_click(event, item.elm);
 		}
 	});
 }
 
-function set_event_from_mouse_offset (event) {
+
+// get className item from mouse offset
+
+function get_item_from_mouse_offset (event) {
 	var yoffset = event.pageY;
 	var offset_item;
 	var item_yoffset_list = [];
@@ -235,7 +236,6 @@ function set_event_from_mouse_offset (event) {
 		}
 	}
 	if(offset_item && offset_item.initialized) {
-		offset_item.elm.bind("click", item_click);
 		return offset_item;
 	} else {
 		return undefined;
@@ -243,18 +243,17 @@ function set_event_from_mouse_offset (event) {
 }
 
 
-// item onclick event for binding (avoid duplication)
+// item onclick event
 
-function item_click (event) {
+function item_click (event, elm) {
 	if(event.shiftKey) {
-		send("expand_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
+		send("expand_cursor", {"id" : elm.attr("class").match(/[0-9]+/)[0]});
 	} else if(event.metaKey) {
-		send("add_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
+		send("add_cursor", {"id" : elm.attr("class").match(/[0-9]+/)[0]});
 	} else {
-		send("move_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
+		send("move_cursor", {"id" : elm.attr("class").match(/[0-9]+/)[0]});
 	}
 	event.stopPropagation();
-	$(this).unbind();
 }
 
 
@@ -963,20 +962,14 @@ function makeup_display_html (base_data, html_templete) {
 	}
 	var text = data.text.replace(/\n/g,"<br>");
 	if(data.entities.urls.length !== 0) {
-		console.log(data.entities.urls);
-		console.log(text);
 		data.entities.urls.forEach(function(urls, i) {
 			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
 		});
-		console.log(text);
 	}
 	if(data.entities.media) {
-		console.log(data.entities.media);
-		console.log(text);
 		data.entities.media.forEach(function(media, i) {
 			text = text.replace(data.entities.media[i].url, data.entities.media[i].expanded_url);
 		});
-		console.log(text);
 	}
 	item_html = html_templete.replace_with({
 		"%screen_name%" : data.user.screen_name,
