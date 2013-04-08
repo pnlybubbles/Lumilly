@@ -203,43 +203,38 @@ function set_events () {
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
 	// get className item from mouse offset and bind event
-	// $container.mousemove(function(event) {
-	// 	var yoffset = event.pageY;
-	// 	var offset_item;
-	// 	var item_yoffset_list = $.extend(true, [], itemChunk.yoffset_list);
-	// 	item_yoffset_list.reverse();
-	// 	for(var i in item_yoffset_list) {
-	// 		if(item_yoffset_list[i] < yoffset) {
-	// 			// console.log(item_yoffset_list.length - i - 1);
-	// 			offset_item = new Item({"coord" : item_yoffset_list.length - i - 1});
-	// 			break;
-	// 		}
-	// 	}
-	// 	if(offset_item && offset_item.initialized) {
-	// 		offset_item.elm.bind("click", item_click);
-	// 		offset_item.elm.bind("mouseout", item_mouseout);
-	// 	}
-	// });
-	$container.mousemove(function(event) {
-		var yoffset = event.pageY;
-		var offset_item;
-		var item_yoffset_list = [];
-		itemChunk.element_list.forEach(function(elm, i) {
-			item_yoffset_list.push(elm.position().top);
-		});
-		item_yoffset_list.reverse();
-		for(var i in item_yoffset_list) {
-			if(item_yoffset_list[i] < yoffset) {
-				// console.log(item_yoffset_list.length - i - 1);
-				offset_item = new Item({"coord" : item_yoffset_list.length - i - 1});
-				break;
-			}
-		}
-		if(offset_item && offset_item.initialized) {
-			offset_item.elm.bind("click", item_click);
-			offset_item.elm.bind("mouseout", item_mouseout);
+	// $container.bind("mousemove", set_event_from_mouse_offset);
+	$container.click(function(event) {
+		// console.log(event);
+		item = set_event_from_mouse_offset(event);
+		// console.log(item);
+		if(item) {
+			item.elm.click();
 		}
 	});
+}
+
+function set_event_from_mouse_offset (event) {
+	var yoffset = event.pageY;
+	var offset_item;
+	var item_yoffset_list = [];
+	itemChunk.element_list.forEach(function(elm, i) {
+		item_yoffset_list.push(elm.position().top);
+	});
+	item_yoffset_list.reverse();
+	for(var i in item_yoffset_list) {
+		if(item_yoffset_list[i] < yoffset) {
+			// console.log(item_yoffset_list.length - i - 1);
+			offset_item = new Item({"coord" : item_yoffset_list.length - i - 1});
+			break;
+		}
+	}
+	if(offset_item && offset_item.initialized) {
+		offset_item.elm.bind("click", item_click);
+		return offset_item;
+	} else {
+		return undefined;
+	}
 }
 
 
@@ -253,12 +248,7 @@ function item_click (event) {
 	} else {
 		send("move_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
 	}
-}
-
-
-// item onmouseout event for binding (avoid duplication)
-
-function item_mouseout (event) {
+	event.stopPropagation();
 	$(this).unbind();
 }
 
