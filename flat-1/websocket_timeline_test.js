@@ -208,11 +208,14 @@ function set_events () {
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
 	$container.click(function(event) {
+		console.log(+new Date());
 		// console.log(event);
 		item = get_item_from_mouse_offset(event);
+		console.log(+new Date());
 		// console.log(item);
 		if(item) {
 			item_click(event, item.elm);
+			console.log(+new Date());
 		}
 	});
 }
@@ -221,20 +224,24 @@ function set_events () {
 // get className item from mouse offset
 
 function get_item_from_mouse_offset (event) {
+	console.log(+new Date());
 	var yoffset = event.pageY;
 	var offset_item;
-	var item_yoffset_list = [];
-	itemChunk.element_list.forEach(function(elm, i) {
-		item_yoffset_list.push(elm.position().top);
-	});
-	item_yoffset_list.reverse();
-	for(var i in item_yoffset_list) {
-		if(item_yoffset_list[i] < yoffset) {
+	// var item_yoffset_list = [];
+	// itemChunk.element_list.forEach(function(elm, i) { //170ms
+	// 	item_yoffset_list.push(elm.position().top);
+	// });
+	var item_element_list = $.extend(true, [], itemChunk.element_list);
+	console.log(+new Date());
+	item_element_list.reverse();
+	for(var i in item_element_list) {
+		if(item_element_list[i].position().top < yoffset) {
 			// console.log(item_yoffset_list.length - i - 1);
-			offset_item = new Item({"coord" : item_yoffset_list.length - i - 1});
+			offset_item = new Item({"coord" : item_element_list.length - i - 1});
 			break;
 		}
 	}
+	console.log(+new Date());
 	if(offset_item && offset_item.initialized) {
 		return offset_item;
 	} else {
