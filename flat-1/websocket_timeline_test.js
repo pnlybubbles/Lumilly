@@ -954,6 +954,46 @@ var retweet_templete = '<div class="item %id%"><div class="item_container"><div 
 var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
 var auto_scrolling = false;
 
+function makeup_display_html (base_data, html_templete) {
+	var data;
+	if(base_data.retweeted_status) {
+		data = base_data.retweeted_status;
+	} else {
+		data = base_data;
+	}
+	var text = data.text.replace(/\n/g,"<br>");
+	if(data.entities.urls.length !== 0) {
+		console.log(data.entities.urls);
+		console.log(text);
+		data.entities.urls.forEach(function(urls, i) {
+			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
+		});
+		console.log(text);
+	}
+	if(data.entities.media) {
+		console.log(data.entities.media);
+		console.log(text);
+		data.entities.media.forEach(function(media, i) {
+			text = text.replace(data.entities.media[i].url, data.entities.media[i].expanded_url);
+		});
+		console.log(text);
+	}
+	item_html = html_templete.replace_with({
+		"%screen_name%" : data.user.screen_name,
+		"%name%" : data.user.name,
+		"%text%" : text,
+		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
+		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
+		"%id%" : data.id_str
+	});
+	if(base_data.retweeted_status) {
+		item_html = item_html.replace_with({
+			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
+		});
+	}
+	return item_html;
+}
+
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
@@ -961,15 +1001,7 @@ methods.show_tweet = function (data) {
 	var id;
 	if(data.retweeted_status) {
 		id = data.retweeted_status.id_str;
-		item_html = retweet_templete.replace_with({
-			"%screen_name%" : data.retweeted_status.user.screen_name,
-			"%name%" : data.retweeted_status.user.name,
-			"%text%" : data.retweeted_status.text.replace(/\n/g,"<br>"),
-			"%created_at%" : data.retweeted_status.created_at.hour + ":" + data.retweeted_status.created_at.min + ":" + data.retweeted_status.created_at.sec,
-			"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
-			"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-			"%id%" : id
-		});
+		item_html = makeup_display_html(data, retweet_templete);
 		item = new Item({"id" : id});
 		if(item.initialized) {
 			item.retweet(data);
@@ -984,14 +1016,7 @@ methods.show_tweet = function (data) {
 		}
 	} else {
 		id = data.id_str;
-		item_html = default_templete.replace_with({
-			"%screen_name%" : data.user.screen_name,
-			"%name%" : data.user.name,
-			"%text%" : data.text.replace(/\n/g,"<br>"),
-			"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
-			"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-			"%id%" : id
-		});
+		item_html = makeup_display_html(data, default_templete);
 	}
 	$container.append(item_html);
 	itemChunk.add(data, $("." + id));
@@ -999,16 +1024,5 @@ methods.show_tweet = function (data) {
 		auto_scrolling = true;
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
-	// $("." + id).click(function(event) {
-	// document.getElementsByClassName(id)[0].addEventListener("click", function() {
-	// 	if(event.shiftKey) {
-	// 		send("expand_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
-	// 	} else if(event.metaKey) {
-	// 		send("add_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
-	// 	} else {
-	// 		send("move_cursor", {"id" : $(this).attr("class").match(/[0-9]+/)[0]});
-	// 	}
-	// }, false);
-	// console.log("'" + id + "'");
 	document.title = itemChunk.id_list.length;
 };
