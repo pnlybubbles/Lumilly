@@ -2,6 +2,8 @@ body {
 	font-family: 'Lucida Grande';
 	margin: 0;
 	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
 	cursor: default;
 }
 
@@ -45,6 +47,14 @@ body {
 	bottom: 6px;
 	font-weight: bold;
 	color: rgb(130, 130, 130);
+}
+
+.event_listener_layer {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
 }
 
 .item {

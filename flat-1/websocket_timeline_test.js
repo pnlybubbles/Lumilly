@@ -207,12 +207,11 @@ function set_events () {
 		typing_event = false;
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
-	$container.click(function(event) {
+	// find clicked item from coordinate of mouse
+	$(".event_listener_layer").click(function(event) {
 		console.log(+new Date());
-		// console.log(event);
 		item = get_item_from_mouse_offset(event);
 		console.log(+new Date());
-		// console.log(item);
 		if(item) {
 			item_click(event, item.elm);
 			console.log(+new Date());
@@ -227,16 +226,13 @@ function get_item_from_mouse_offset (event) {
 	console.log(+new Date());
 	var yoffset = event.pageY;
 	var offset_item;
-	// var item_yoffset_list = [];
-	// itemChunk.element_list.forEach(function(elm, i) { //170ms
-	// 	item_yoffset_list.push(elm.position().top);
-	// });
-	var item_element_list = $.extend(true, [], itemChunk.element_list);
+	// var item_element_list = $.extend(true, [], itemChunk.element_list);
+	var item_element_list = $.extend(true, [], itemChunk.yoffset_list);
 	console.log(+new Date());
 	item_element_list.reverse();
 	for(var i in item_element_list) {
-		if(item_element_list[i].position().top < yoffset) {
-			// console.log(item_yoffset_list.length - i - 1);
+		// if(item_element_list[i].position().top < yoffset) {
+		if(item_element_list[i] < yoffset) {
 			offset_item = new Item({"coord" : item_element_list.length - i - 1});
 			break;
 		}
@@ -260,7 +256,6 @@ function item_click (event, elm) {
 	} else {
 		send("move_cursor", {"id" : elm.attr("class").match(/[0-9]+/)[0]});
 	}
-	event.stopPropagation();
 }
 
 
@@ -512,6 +507,13 @@ methods.add_cursor = function(item_obj) {
 };
 
 
+// calculate absolute value
+
+function abs (x) {
+	return (x ^ (x >> 31)) - (x >> 31);
+}
+
+
 // expand cursor
 
 methods.expand_cursor = function(item_obj) {
@@ -521,7 +523,7 @@ methods.expand_cursor = function(item_obj) {
 	var selected_last_coord = selected_items.last().coord;
 	var expand_to_item_coord = expand_to_items.first().coord;
 	var expand_items_arr = [];
-	if(Math.abs(selected_first_coord - expand_to_item_coord) < Math.abs(selected_last_coord - expand_to_item_coord)) {
+	if(abs(selected_first_coord - expand_to_item_coord) < abs(selected_last_coord - expand_to_item_coord)) {
 		for(i = Math.min(selected_first_coord, expand_to_item_coord); i <= Math.max(selected_first_coord, expand_to_item_coord); i++) {
 			expand_items_arr.push({"coord" : i});
 		}
