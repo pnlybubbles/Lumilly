@@ -35,6 +35,23 @@ Twitter Clientとしてのハンドリングクライアント
 
 (windowsだと`faye-websocket`のインストールができません。)
 
+###Oauth key
+
+ConsumerKey,AcccessTokenは自分で入れて下さい。
+
+`websocket_server_with_handler_client.rb`の該当箇所をコメントアウト
+
+	# require '../key_token.rb'
+
+ConsumerKey,AcccessTokenを取ってきて、以下のようにファイルの先頭の方に追加して下さい。
+
+	CONSUMER_KEY        = "*"
+	CONSUMER_SECRET     = "*"
+	ACCESS_TOKEN        = "*"
+	ACCESS_TOKEN_SECRET = "*"
+
+
+
 ###実行
 
 	ruby websocket_server_daemon.rb
