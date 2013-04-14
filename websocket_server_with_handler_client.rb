@@ -206,9 +206,11 @@ module App
 				when 'unfollow'
 
 				when 'favorite'
-					
+					mthd = "show_favorite"
+					argu = res
 				when 'unfavorite'
-
+					mthd = "hide_favorite"
+					argu = res
 				else
 					
 				end

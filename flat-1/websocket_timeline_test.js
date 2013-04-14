@@ -118,10 +118,10 @@ function set_events () {
 			method = {"go_next" : ["tl"]};
 			break;
 			case 70: //f
-			method = {"favorite" : ["tl"]};
+			method = {"toggle_favorite" : ["tl"]};
 			break;
 			case 86: //v
-			method = {"retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
+			method = {"toggle_retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
 			break;
 			case 9: //tab
 			method = {"toggle_textarea_focus" : ["both"]};
@@ -235,13 +235,13 @@ function get_item_from_mouse_offset (event) {
 	console.log(+new Date());
 	var yoffset = event.pageY;
 	var offset_item;
-	// var item_element_list = $.extend(true, [], itemChunk.element_list);
-	var item_element_list = $.extend(true, [], itemChunk.yoffset_list);
+	var item_element_list = $.extend(true, [], itemChunk.element_list);
+	// var item_element_list = $.extend(true, [], itemChunk.yoffset_list);
 	console.log(+new Date());
 	item_element_list.reverse();
 	for(var i in item_element_list) {
-		// if(item_element_list[i].position().top < yoffset) {
-		if(item_element_list[i] < yoffset) {
+		// if(item_element_list[i] < yoffset) {
+		if(item_element_list[i].position().top < yoffset) {
 			offset_item = new Item({"coord" : item_element_list.length - i - 1});
 			break;
 		}
@@ -326,16 +326,18 @@ methods.go_next = function() {
 
 // favorite item
 
-methods.favorite = function() {
+methods.toggle_favorite = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
 		if(!(item.favorite())) {
 			tell("favorite", item.id);
 			item.favorite(true);
+			send("add_status", [item, "favorite_symbol", "FAV"]);
 		} else {
 			if(items.item.length == 1) {
 				tell("unfavorite", item.id);
 				item.favorite(false);
+				send("rm_status", [item, "favorite_symbol"]);
 			}
 		}
 	});
@@ -344,7 +346,7 @@ methods.favorite = function() {
 
 // retweet item
 
-methods.retweet = function() {
+methods.toggle_retweet = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
 		if(!(item.retweeted)) {
@@ -484,7 +486,7 @@ methods.copy_tweet = function() {
 
 
 //=========================
-// cursor methods
+// cursor control methods
 //=========================
 
 // move item
@@ -588,7 +590,7 @@ String.prototype.replace_with = function(obj) {
 // set mydata
 //=========================
 
-var my_data;
+var mydata;
 
 methods.set_my_data = function(data) {
 	mydata = data;
@@ -597,11 +599,34 @@ methods.set_my_data = function(data) {
 
 
 //=========================
+// ui control
+//=========================
+
+methods.add_status = function(argu) {
+	item = argu[0];
+	class_name = argu[1];
+	label = argu[2];
+	status_html = '<div class="status %class_name%">%label%</div>';
+	status_html = status_html.replace_with({
+		"%class_name%" : class_name,
+		"%label%" : label
+	});
+	item.elm.find(".statuses").append(status_html);
+};
+
+methods.rm_status = function(argu) {
+	items = argu[0];
+	class_name = argu[1];
+	item.elm.find(".status").remove("." + class_name);
+};
+
+
+//=========================
 // show tweets on timeline
 //=========================
 
-var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="statuses"></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="statuses"></div><div class="created_at">%created_at%</div></div></div>';
 var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
 var auto_scrolling = false;
 
@@ -657,6 +682,9 @@ methods.show_tweet = function (data) {
 				});
 				$("." + id).find(".img_wrap").replaceWith(item_html);
 			}
+			if(data.user.id_str == mydata.id_str) {
+				send("add_status", [item, "retweet_symbol", "RT"]);
+			}
 			return;
 		}
 	} else {
@@ -670,6 +698,36 @@ methods.show_tweet = function (data) {
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
 	document.title = itemChunk.id_list.length;
+};
+
+
+//=========================
+// show favorite on item
+//=========================
+
+methods.show_favorite = function(data) {
+	var item = new Item({"id" : data.target_object.id_str});
+	if(item.initialized) {
+		if(!(item.favorite())) {
+			item.favorite(true);
+			send("add_status", [item, "favorite_symbol", "FAV"]);
+		}
+	}
+};
+
+
+//=========================
+// hide favorite on item
+//=========================
+
+methods.hide_favorite = function(data) {
+	var item = new Item({"id" : data.target_object.id_str});
+	if(item.initialized) {
+		if(item.favorite()) {
+			item.favorite(false);
+			send("rm_status", [item, "favorite_symbol"]);
+		}
+	}
 };
 
 
