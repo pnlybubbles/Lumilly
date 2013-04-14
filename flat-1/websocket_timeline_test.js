@@ -55,6 +55,7 @@ function on_message (evt) {
 //=========================
 
 // send
+// call "methods"s method with argument
 
 var methods = {};
 
@@ -72,6 +73,7 @@ function send (method, argu) {
 
 
 // methods method_missing
+// called when methods do not have sended method
 
 function method_missing (method, argu) {
 	console.log({
@@ -82,6 +84,7 @@ function method_missing (method, argu) {
 
 
 // tell method
+// send method and argument to ruby client
 
 function tell (method, argu) {
 	if(!(argu instanceof Array)) {
@@ -124,7 +127,7 @@ function set_events () {
 			method = {"toggle_textarea_focus" : ["both"]};
 			break;
 			case 13: //enter
-			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl"], "create_reply" : ["tl"]};
+			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl", "noprevent"], "create_reply" : ["tl"]};
 			break;
 			case 67: //c
 			method = {"copy_tweet" : ["tl", "meta"]};
@@ -155,14 +158,20 @@ function set_events () {
 		}
 		with_state = with_state.sort();
 		// check method's running condition
+		var no_prevent_default = false;
 		for(var method_key in method) {
 			var method_with_state = method[method_key].map(function(v) {
 				if(v == "both") {
 					return typing_event ? "type" : "tl";
+				} else if(v == "noprevent") {
+					no_prevent_default = true;
+					return;
 				} else { return v; }
 			}).sort();
+			method_with_state = method_with_state.slice(0, (undefined_pos = method_with_state.indexOf(undefined) == -1 ? method_with_state.length : undefined_pos + 1));
 			if(JSON.stringify(method_with_state) == JSON.stringify(with_state)) {
-				if(!(typing_event) || method_with_state.indexOf("type") != -1) {
+				if(!(no_prevent_default)) {
+					console.log("prevented");
 					if(event.preventDefault) {
 						// console.log("prevented");
 						event.preventDefault();
@@ -382,7 +391,6 @@ methods.enter_to_post = function() {
 // type newline
 
 methods.type_newline = function() {
-	$post_textarea.val($post_textarea.val() + "\n");
 };
 
 
@@ -442,7 +450,7 @@ methods.update_post_textarea_count = function() {
 };
 
 
-// check in_reply_to
+// check in_reply_to (heavy...)
 
 methods.check_in_reply_to = function() {
 	var screen_names_in_textarea = $post_textarea.val().match(/@[0-9A-Za-z_]+/g);
@@ -560,6 +568,108 @@ methods.deselect_cursor = function(items) {
 	$.each(items.item, function(i, item) {
 		$("." + item.id).find(".item_container").removeClass("selected");
 	});
+};
+
+
+//=========================
+// replace_with method
+//=========================
+
+String.prototype.replace_with = function(obj) {
+	var str = this;
+	for(var key in obj) {
+		str = str.replace(new RegExp(key, "g"), obj[key]);
+	}
+	return str;
+};
+
+
+//=========================
+// set mydata
+//=========================
+
+var my_data;
+
+methods.set_my_data = function(data) {
+	mydata = data;
+	console.log(data);
+};
+
+
+//=========================
+// show tweets on timeline
+//=========================
+
+var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
+var auto_scrolling = false;
+
+function makeup_display_html (base_data, html_templete) {
+	var data;
+	if(base_data.retweeted_status) {
+		data = base_data.retweeted_status;
+	} else {
+		data = base_data;
+	}
+	var text = data.text.replace(/\n/g,"<br>");
+	if(data.entities.urls.length !== 0) {
+		data.entities.urls.forEach(function(urls, i) {
+			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
+		});
+	}
+	if(data.entities.media) {
+		data.entities.media.forEach(function(media, i) {
+			text = text.replace(data.entities.media[i].url, data.entities.media[i].expanded_url);
+		});
+	}
+	item_html = html_templete.replace_with({
+		"%screen_name%" : data.user.screen_name,
+		"%name%" : data.user.name,
+		"%text%" : text,
+		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
+		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
+		"%id%" : data.id_str
+	});
+	if(base_data.retweeted_status) {
+		item_html = item_html.replace_with({
+			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
+		});
+	}
+	return item_html;
+}
+
+methods.show_tweet = function (data) {
+	var window_height = window.innerHeight;
+	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
+	var item_html;
+	var id;
+	if(data.retweeted_status) {
+		id = data.retweeted_status.id_str;
+		item_html = makeup_display_html(data, retweet_templete);
+		item = new Item({"id" : id});
+		if(item.initialized) {
+			item.retweet(data);
+			if(Object.keys(item.retweets).length == 1) {
+				item_html = retweet_img_templete.replace_with({
+					"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
+					"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
+				});
+				$("." + id).find(".img_wrap").replaceWith(item_html);
+			}
+			return;
+		}
+	} else {
+		id = data.id_str;
+		item_html = makeup_display_html(data, default_templete);
+	}
+	$container.append(item_html);
+	itemChunk.add(data, $("." + id));
+	if(is_bottom) {
+		auto_scrolling = true;
+		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
+	}
+	document.title = itemChunk.id_list.length;
 };
 
 
@@ -925,106 +1035,4 @@ Items.prototype = {
 			throw new Error("not initialized");
 		}
 	}
-};
-
-
-//=========================
-// replace_with methods
-//=========================
-
-String.prototype.replace_with = function(obj) {
-	var str = this;
-	for(var key in obj) {
-		str = str.replace(new RegExp(key, "g"), obj[key]);
-	}
-	return str;
-};
-
-
-//=========================
-// set mydata
-//=========================
-
-var my_data;
-
-methods.set_my_data = function(data) {
-	mydata = data;
-	console.log(data);
-};
-
-
-//=========================
-// show tweets on timeline
-//=========================
-
-var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
-var auto_scrolling = false;
-
-function makeup_display_html (base_data, html_templete) {
-	var data;
-	if(base_data.retweeted_status) {
-		data = base_data.retweeted_status;
-	} else {
-		data = base_data;
-	}
-	var text = data.text.replace(/\n/g,"<br>");
-	if(data.entities.urls.length !== 0) {
-		data.entities.urls.forEach(function(urls, i) {
-			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
-		});
-	}
-	if(data.entities.media) {
-		data.entities.media.forEach(function(media, i) {
-			text = text.replace(data.entities.media[i].url, data.entities.media[i].expanded_url);
-		});
-	}
-	item_html = html_templete.replace_with({
-		"%screen_name%" : data.user.screen_name,
-		"%name%" : data.user.name,
-		"%text%" : text,
-		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
-		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-		"%id%" : data.id_str
-	});
-	if(base_data.retweeted_status) {
-		item_html = item_html.replace_with({
-			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
-		});
-	}
-	return item_html;
-}
-
-methods.show_tweet = function (data) {
-	var window_height = window.innerHeight;
-	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
-	var item_html;
-	var id;
-	if(data.retweeted_status) {
-		id = data.retweeted_status.id_str;
-		item_html = makeup_display_html(data, retweet_templete);
-		item = new Item({"id" : id});
-		if(item.initialized) {
-			item.retweet(data);
-			if(Object.keys(item.retweets).length == 1) {
-				item_html = retweet_img_templete.replace_with({
-					"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
-					"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
-				});
-				$("." + id).find(".img_wrap").replaceWith(item_html);
-			}
-			return;
-		}
-	} else {
-		id = data.id_str;
-		item_html = makeup_display_html(data, default_templete);
-	}
-	$container.append(item_html);
-	itemChunk.add(data, $("." + id));
-	if(is_bottom) {
-		auto_scrolling = true;
-		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
-	}
-	document.title = itemChunk.id_list.length;
 };
