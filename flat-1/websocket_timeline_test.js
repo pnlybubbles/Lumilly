@@ -158,22 +158,20 @@ function set_events () {
 		}
 		with_state = with_state.sort();
 		// check method's running condition
-		var no_prevent_default = false;
 		for(var method_key in method) {
+			var no_prevent_default = false;
 			var method_with_state = method[method_key].map(function(v) {
 				if(v == "both") {
 					return typing_event ? "type" : "tl";
 				} else if(v == "noprevent") {
 					no_prevent_default = true;
-					return;
+					return undefined;
 				} else { return v; }
 			}).sort();
 			method_with_state = method_with_state.slice(0, (undefined_pos = method_with_state.indexOf(undefined) == -1 ? method_with_state.length : undefined_pos + 1));
 			if(JSON.stringify(method_with_state) == JSON.stringify(with_state)) {
 				if(!(no_prevent_default)) {
-					console.log("prevented");
 					if(event.preventDefault) {
-						// console.log("prevented");
 						event.preventDefault();
 					}
 				}
