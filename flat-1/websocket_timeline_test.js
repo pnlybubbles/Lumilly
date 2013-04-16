@@ -553,7 +553,11 @@ methods.select_cursor = function(items) {
 	}
 	items.select();
 	$.each(items.item, function(i, item) {
-		item.elm.find(".item_container").addClass("selected");
+		var $item_container = item.elm.find(".item_container");
+		$item_container.addClass("selected");
+		if(mini_view) {
+			$item_container.removeClass("mini");
+		}
 	});
 };
 
@@ -566,7 +570,11 @@ methods.deselect_cursor = function(items) {
 	}
 	items.deselect();
 	$.each(items.item, function(i, item) {
-		item.elm.find(".item_container").removeClass("selected");
+		var $item_container = item.elm.find(".item_container");
+		$item_container.removeClass("selected");
+		if(mini_view) {
+			$item_container.addClass("mini");
+		}
 	});
 };
 
@@ -623,10 +631,11 @@ methods.rm_status = function(argu) {
 // show tweets on timeline
 //=========================
 
-var default_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="statuses"></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_templete = '<div class="item %id%"><div class="item_container"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_warp"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div></div></div><div class="statuses"></div><div class="created_at">%created_at%</div></div></div>';
+var default_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"></div></div></div><div class="created_at">%created_at%</div></div></div>';
+var retweet_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"></div></div></div><div class="created_at">%created_at%</div></div></div>';
 var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
 var auto_scrolling = false;
+var mini_view = true;
 
 function makeup_display_html (base_data, html_templete) {
 	var data;
@@ -635,7 +644,7 @@ function makeup_display_html (base_data, html_templete) {
 	} else {
 		data = base_data;
 	}
-	var text = data.text.replace(/\n/g,"<br>");
+	var text = data.text.replace(/\n/g, "<br>");
 	if(data.entities.urls.length !== 0) {
 		data.entities.urls.forEach(function(urls, i) {
 			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
@@ -654,6 +663,15 @@ function makeup_display_html (base_data, html_templete) {
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
 		"%id%" : data.id_str
 	});
+	if(mini_view) {
+		item_html = item_html.replace_with({
+			"%mini_view%" : "mini"
+		});
+	} else {
+		item_html = item_html.replace_with({
+			"%mini_view%" : ""
+		});
+	}
 	if(base_data.retweeted_status) {
 		item_html = item_html.replace_with({
 			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
