@@ -704,11 +704,13 @@ methods.show_tweet = function (data) {
 //=========================
 
 methods.show_favorite = function(data) {
-	var item = new Item({"id" : data.target_object.id_str});
-	if(item.initialized) {
-		if(!(item.favorite())) {
-			item.favorite(true);
-			send("add_status", [item, "favorite_symbol", "FAV"]);
+	if(data.source.id_str == mydata.id_str) {
+		var item = new Item({"id" : data.target_object.id_str});
+		if(item.initialized) {
+			if(!(item.favorite())) {
+				item.favorite(true);
+				send("add_status", [item, "favorite_symbol", "FAV"]);
+			}
 		}
 	}
 };
@@ -719,11 +721,13 @@ methods.show_favorite = function(data) {
 //=========================
 
 methods.hide_favorite = function(data) {
-	var item = new Item({"id" : data.target_object.id_str});
-	if(item.initialized) {
-		if(item.favorite()) {
-			item.favorite(false);
-			send("rm_status", [item, "favorite_symbol"]);
+	if(data.source.id_str == mydata.id_str) {
+		var item = new Item({"id" : data.target_object.id_str});
+		if(item.initialized) {
+			if(item.favorite()) {
+				item.favorite(false);
+				send("rm_status", [item, "favorite_symbol"]);
+			}
 		}
 	}
 };
