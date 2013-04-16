@@ -553,7 +553,7 @@ methods.select_cursor = function(items) {
 	}
 	items.select();
 	$.each(items.item, function(i, item) {
-		$("." + item.id).find(".item_container").addClass("selected");
+		item.elm.find(".item_container").addClass("selected");
 	});
 };
 
@@ -566,7 +566,7 @@ methods.deselect_cursor = function(items) {
 	}
 	items.deselect();
 	$.each(items.item, function(i, item) {
-		$("." + item.id).find(".item_container").removeClass("selected");
+		item.elm.find(".item_container").removeClass("selected");
 	});
 };
 
@@ -667,6 +667,7 @@ methods.show_tweet = function (data) {
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var item_html;
 	var id;
+	//console.log(data);
 	if(data.retweeted_status) {
 		id = data.retweeted_status.id_str;
 		item_html = makeup_display_html(data, retweet_templete);

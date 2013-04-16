@@ -39,7 +39,7 @@ module App
 		end
 
 		def connect(&block)
-			uri = URI.parse("https://userstream.twitter.com/2/user.json")
+			uri = URI.parse("https://userstream.twitter.com/1.1/user.json")
 			https = Net::HTTP.new(uri.host, uri.port)
 			https.use_ssl = true
 			#https.ca_file = CERTIFICATE_PATH
@@ -129,12 +129,16 @@ module App
 					p [:open]
 
 					Thread.new(ws) { |ws_t|
-						App::TwitterAPI.new.connect { |res|
-							mthd, argu = @controller.respose(res)
-							command = {:method => mthd, :argu => argu}
-							msg = {:server => command}
-							ws_t.send(JSON.generate(msg).to_s)
-						}
+						begin
+							App::TwitterAPI.new.connect { |res|
+								mthd, argu = @controller.respose(res)
+								command = {:method => mthd, :argu => argu}
+								msg = {:server => command}
+								ws_t.send(JSON.generate(msg).to_s)
+							}
+						rescue Exception => e
+							puts "ERROR: #{e}"
+						end
 					}
 				end
 
