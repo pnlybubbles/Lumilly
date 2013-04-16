@@ -42,9 +42,10 @@ module App
 			uri = URI.parse("https://userstream.twitter.com/1.1/user.json")
 			https = Net::HTTP.new(uri.host, uri.port)
 			https.use_ssl = true
-			#https.ca_file = CERTIFICATE_PATH
-			https.verify_mode = OpenSSL::SSL::VERIFY_PEER
-			https.verify_depth = 5
+			# https.ca_file = CERTIFICATE_PATH
+			# https.verify_mode = OpenSSL::SSL::VERIFY_PEER
+			https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+			# https.verify_depth = 5
 			
 			https.start do |https|
 				request = Net::HTTP::Get.new(uri.request_uri)
@@ -131,13 +132,14 @@ module App
 					Thread.new(ws) { |ws_t|
 						begin
 							App::TwitterAPI.new.connect { |res|
+								# p res
 								mthd, argu = @controller.respose(res)
 								command = {:method => mthd, :argu => argu}
 								msg = {:server => command}
 								ws_t.send(JSON.generate(msg).to_s)
 							}
 						rescue Exception => e
-							puts "ERROR: #{e}"
+							puts "#### ERROR: #{e} ####"
 						end
 					}
 				end
@@ -158,7 +160,7 @@ module App
 									ws_t.send(JSON.generate(msg).to_s)
 								end
 							rescue Exception => e
-								puts "#### #{e} ####"
+								puts "#### ERROR: #{e} ####"
 							end
 						}
 					end
