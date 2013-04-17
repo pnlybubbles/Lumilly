@@ -414,6 +414,19 @@ methods.create_reply = function() {
 };
 
 
+// anescape html method
+
+function html_anescape(text) {
+	return text.replace_with({
+		"&amp;" : "&",
+		"&gt;" : ">",
+		"&lt;" : "<",
+		"&quot;" : "\"",
+		"&apos;" : "'"
+	});
+}
+
+
 // unofficial retweet
 
 var unofficial_retweet_templete = " RT @%screen_name%: %text%";
@@ -430,7 +443,7 @@ methods.unofficial_retweet = function() {
 		"%screen_name%" : reply_screen_name,
 		"%text%" : reply_text
 	});
-	$post_textarea.val($post_textarea.val() + unofficial_retweet_text);
+	$post_textarea.val($post_textarea.val() + html_anescape(unofficial_retweet_text));
 	in_reply_to["screen_name"] = reply_screen_name;
 	in_reply_to["id"] = reply_id;
 	$post_textarea.focus();
