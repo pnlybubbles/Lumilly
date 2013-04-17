@@ -120,8 +120,17 @@ function set_events () {
 			case 70: //f
 			method = {"toggle_favorite" : ["tl"]};
 			break;
+			case 83: //s
+			method = {"toggle_favorite" : ["tl", "ctrl"]};
+			break;
 			case 86: //v
 			method = {"toggle_retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
+			break;
+			case 82: //r
+			method = {"toggle_retweet" : ["tl", "alt"]};
+			break;
+			case 81: //q
+			method = {"unofficial_retweet" : ["tl", "ctrl"]};
 			break;
 			case 9: //tab
 			method = {"toggle_textarea_focus" : ["both"]};
@@ -134,6 +143,9 @@ function set_events () {
 			break;
 			case 78: //n
 			method = {"create_new_tweet" : ["both", "meta"]};
+			break;
+			case 35: //end
+			method = {"cursor_to_end" : ["tl"]};
 			break;
 			default:
 		}
@@ -310,7 +322,6 @@ methods.go_next = function() {
 	if(items.all_initialized()) {
 		if(next_item) {
 			send("move_cursor", next_item);
-			console.log(next_item.elm.offset().top + ":" + $body.scrollTop() + "-" + (next_item.elm.offset().top + next_item.elm.height()) + ":" + ($body.scrollTop() + window.innerHeight - container_margin));
 			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
 				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
 				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
@@ -494,6 +505,21 @@ methods.copy_tweet = function() {
 		texts.push(item.src.text);
 	});
 	tell("copy", texts.join(" "));
+};
+
+
+// cursor to end item
+
+methods.cursor_to_end = function() {
+	var end_item = itemChunk.last();
+	send("move_cursor", end_item);
+	if(end_item.elm.offset().top < $body.scrollTop() || (end_item.elm.offset().top + end_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
+		var scroll_top = (end_item.elm.offset().top + end_item.elm.height()) - (window.innerHeight / 2);
+		if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
+			scroll_top = ($container.height() + container_margin - window.innerHeight);
+		}
+		$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+	}
 };
 
 
