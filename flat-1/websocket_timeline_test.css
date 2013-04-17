@@ -7,11 +7,6 @@ body {
 	cursor: default;
 }
 
-/*.status {
-	height: 40px;
-	width: 100%;
-}*/
-
 .container {
 	width: 100%;
 	margin-bottom: 60px;
@@ -77,22 +72,31 @@ body {
 
 .left_item {
 	/*margin: 10px 10px;*/
-	overflow : hidden;
+	/*overflow : hidden;*/
+	display: -webkit-box;
+	display:    -moz-box;
+	display:         box;
+	-webkit-box-orient: horizontal;
+	   -moz-box-orient: horizontal;
+	        box-orient: horizontal;
 }
 
 .img_wrap {
+	width: 54px;
+	height: 54px;
 	margin: 0;
-	float: left;
-	padding: 3px;
 	background-color: rgb(255, 255, 255);
 	border: 1px solid rgb(208, 208, 208);
+	-webkit-box-ordinal-group: 1;
+	   -moz-box-ordinal-group: 1;
+	        box-ordinal-group: 1;
 }
 
 .profile_image {
 	position: relative;
 	width: 50px;
 	height: 50px;
-	margin: 0;
+	margin: 2px;
 	background-color: rgb(255, 255, 255);
 	background-size: cover;
 }
@@ -114,9 +118,16 @@ body {
 }
 
 .text_wrap {
-	margin-left: 70px;
+	/*margin-left: 70px;*/
 	/*margin-bottom: 10px;*/
 	width: auto;
+	margin-left: 10px;
+	-webkit-box-ordinal-group: 2;
+	   -moz-box-ordinal-group: 2;
+	        box-ordinal-group: 2;
+	-webkit-box-flex: 1;
+	   -moz-box-flex: 1;
+	        box-flex: 1;
 }
 
 .screen_name {
@@ -176,11 +187,12 @@ body {
 }
 
 .mini .img_wrap {
-	padding: 2px;
+	height: 24px;
 }
 
 .mini .profile_image {
 	height: 20px;
+	background-position: center center;
 }
 
 .mini .retweet_img_wrap {
@@ -207,6 +219,7 @@ body {
 	width: 90px;
 	-webkit-box-ordinal-group: 1;
 	   -moz-box-ordinal-group: 1;
+	        box-ordinal-group: 1;
 }
 
 .mini .screen_name {

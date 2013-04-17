@@ -284,8 +284,8 @@ methods.go_prev = function() {
 	if(items.all_initialized()) {
 		if(prev_item) {
 			send("move_cursor", prev_item);
-			if($("." + prev_item.id).offset().top < $body.scrollTop() || ($("." + prev_item.id).offset().top + $("." + prev_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
-				scroll_top = $("." + prev_item.id).offset().top - (window.innerHeight / 2);
+			if(prev_item.elm.offset().top < $body.scrollTop() || (prev_item.elm.offset().top + prev_item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
+				var scroll_top = prev_item.elm.offset().top - (window.innerHeight / 2);
 				if(scroll_top < 0) {
 					scroll_top = 0;
 				}
@@ -310,8 +310,9 @@ methods.go_next = function() {
 	if(items.all_initialized()) {
 		if(next_item) {
 			send("move_cursor", next_item);
-			if($("." + next_item.id).offset().top < $body.scrollTop() || ($("." + next_item.id).offset().top + $("." + next_item.id).height()) > ($body.scrollTop() + window.innerHeight)) {
-				scroll_top = ($("." + next_item.id).offset().top + $("." + next_item.id).height()) - (window.innerHeight / 2);
+			console.log(next_item.elm.offset().top + ":" + $body.scrollTop() + "-" + (next_item.elm.offset().top + next_item.elm.height()) + ":" + ($body.scrollTop() + window.innerHeight - container_margin));
+			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
+				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
 				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
 					scroll_top = ($container.height() + container_margin - window.innerHeight);
 				}
