@@ -54,11 +54,11 @@ ConsumerKey,AcccessTokenを取ってきて、以下のようにファイルの�
 
 ###実行
 
-	ruby websocket_server_daemon.rb
+	ruby websocket_server_with_handler_client.rb
 
 これを実行した後、ブラウザで`websocket_timeline_test.html`を開く。
 
-`websocket_server_daemon.rb`の終了は`^C`で行なって下さい。
+`websocket_server_with_handler_client.rb`の終了は`^C`で行なって下さい。
 
 
 #ライセンス
