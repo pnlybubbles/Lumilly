@@ -115,7 +115,7 @@ function set_events () {
 			method = {"go_prev" : ["tl"]};
 			break;
 			case 40: //down
-			method = {"go_next" : ["tl"]};
+			method = {"go_next" : ["tl"], "cursor_to_end" : ["tl", "meta"]};
 			break;
 			case 70: //f
 			method = {"toggle_favorite" : ["tl"]};
@@ -595,7 +595,8 @@ methods.select_cursor = function(items) {
 	$.each(items.item, function(i, item) {
 		var $item_container = item.elm.find(".item_container");
 		$item_container.addClass("selected");
-		if(mini_view) {
+		var selected_items = new Items();
+		if(mini_view && selected_items.all_initialized() && selected_items.item.length < 2) {
 			$item_container.removeClass("mini");
 		}
 	});
