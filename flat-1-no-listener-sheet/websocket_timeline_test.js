@@ -229,15 +229,15 @@ function set_events () {
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
 	// find clicked item from coordinate of mouse
-	$(".event_listener_layer").click(function(event) {
-		console.log(+new Date());
-		item = get_item_from_mouse_offset(event);
-		console.log(+new Date());
-		if(item) {
-			item_click(event, item.elm);
-			console.log(+new Date());
-		}
-	});
+	// $(".event_listener_layer").click(function(event) {
+	// 	console.log(+new Date());
+	// 	item = get_item_from_mouse_offset(event);
+	// 	console.log(+new Date());
+	// 	if(item) {
+	// 		item_click(event, item.elm);
+	// 		console.log(+new Date());
+	// 	}
+	// });
 }
 
 
@@ -769,9 +769,9 @@ methods.show_tweet = function (data) {
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
 	// add item click event
-	// $item.click(function(event) {
-	// 	item_click(event, $(this));
-	// });
+	$item.click(function(event) {
+		item_click(event, $(this));
+	});
 	document.title = itemChunk.id_list.length;
 };
 
