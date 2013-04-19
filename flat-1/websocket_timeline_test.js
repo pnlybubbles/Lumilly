@@ -755,16 +755,18 @@ methods.show_tweet = function (data) {
 	itemChunk.add(data, $item);
 	var $item_container = $item.find(".item_container");
 	// check item type
-	if(data.entities.user_mentions.length !== 0) {
-		for(var v in data.entities.user_mentions) {
-			if(data.entities.user_mentions[v].id_str == mydata.id_str) {
-				$item_container.addClass("reply");
-				break;
+	if(mydata) {
+		if(data.entities.user_mentions.length !== 0) {
+			for(var v in data.entities.user_mentions) {
+				if(data.entities.user_mentions[v].id_str == mydata.id_str) {
+					$item_container.addClass("reply");
+					break;
+				}
 			}
 		}
-	}
-	if(mydata && data.user.id_str == mydata.id_str) {
-		$item_container.addClass("mine");
+		if(data.user.id_str == mydata.id_str) {
+			$item_container.addClass("mine");
+		}
 	}
 	// auto scrolling to bottom
 	if(is_bottom) {
@@ -775,11 +777,18 @@ methods.show_tweet = function (data) {
 	$item.click(function(event) {
 		item_click(event, $(this));
 	});
-	if(itemChunk.id_list.length > list_item_limit) {
-		remove_item = new Item({"coord" : 0});
-		remove_item.elm.remove();
-		remove_item.remove();
-	}
+	// remove items to limit
+	setTimeout(function() {
+		if(!(auto_scrolling)) {
+			if(itemChunk.id_list.length > (list_item_limit - 1)) {
+				$.each((new Array(itemChunk.id_list.length - (list_item_limit - 1))), function(i) {
+					remove_item = new Item({"coord" : i});
+					remove_item.elm.remove();
+					remove_item.remove();
+				});
+			}
+		}
+	}, 210);
 	document.title = itemChunk.id_list.length;
 };
 
