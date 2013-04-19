@@ -229,15 +229,15 @@ function set_events () {
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
 	// find clicked item from coordinate of mouse
-	$(".event_listener_layer").click(function(event) {
-		console.log(+new Date());
-		item = get_item_from_mouse_offset(event);
-		console.log(+new Date());
-		if(item) {
-			item_click(event, item.elm);
-			console.log(+new Date());
-		}
-	});
+	// $(".event_listener_layer").click(function(event) {
+	// 	console.log(+new Date());
+	// 	item = get_item_from_mouse_offset(event);
+	// 	console.log(+new Date());
+	// 	if(item) {
+	// 		item_click(event, item.elm);
+	// 		console.log(+new Date());
+	// 	}
+	// });
 }
 
 
@@ -717,6 +717,9 @@ function makeup_display_html (base_data, html_templete) {
 	return item_html;
 }
 
+
+var list_item_limit = 400;
+
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
@@ -769,9 +772,14 @@ methods.show_tweet = function (data) {
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
 	// add item click event
-	// $item.click(function(event) {
-	// 	item_click(event, $(this));
-	// });
+	$item.click(function(event) {
+		item_click(event, $(this));
+	});
+	if(itemChunk.id_list.length > list_item_limit) {
+		remove_item = new Item({"coord" : 0});
+		remove_item.elm.remove();
+		remove_item.remove();
+	}
 	document.title = itemChunk.id_list.length;
 };
 
@@ -829,10 +837,11 @@ Container.prototype = {
 			"src" : null,
 			"elm" : null
 		};
-		this.arrays = ["id_list", "favorited_list", "retweeted_list", "retweets_list", "source_list", "selected", "element_list", "yoffset_list"];
+		this.arrays = ["id_list", "favorited_list", "retweeted_list", "retweets_list", "source_list", "element_list", "yoffset_list"];
 		this.arrays.forEach(function(mthd, i) {
 			this[mthd] = [];
 		}, this);
+		this["selected"] = [];
 	},
 	add: function(data, elm) {
 		if(data.retweeted_status) {
@@ -850,6 +859,16 @@ Container.prototype = {
 		}
 		this.element_list.push(elm);
 		this.yoffset_list.push(elm.position().top);
+	},
+	remove: function(coord) {
+		this.arrays.forEach(function(mthd, i) {
+			this[mthd].splice(coord, 1);
+		}, this);
+		this.selected.forEach(function(item, i) {
+			if(item.coord == coord) {
+				this.selected.splice(i, 1);
+			}
+		}, this);
 	},
 	coord: function(coord) {
 		coord = parseInt(coord, 10);
@@ -1048,6 +1067,10 @@ Item.prototype = {
 			itemChunk.favorite(this, this.favorited);
 			return this.favorited;
 		}
+	},
+	remove: function() {
+		itemChunk.remove(this.coord);
+		return this;
 	}
 };
 
@@ -1171,5 +1194,10 @@ Items.prototype = {
 		} else {
 			throw new Error("not initialized");
 		}
+	},
+	remove: function() {
+		$.each(this.item, function(i, item) {
+			item.remove();
+		});
 	}
 };
