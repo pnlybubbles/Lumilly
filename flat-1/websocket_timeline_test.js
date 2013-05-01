@@ -31,7 +31,7 @@ function load_websocket () {
 
 function on_open () {
 	console.log("socket opened");
-	tell("verify_credentials");
+	// tell("verify_credentials");
 }
 
 function on_colse () {
@@ -532,10 +532,16 @@ methods.cursor_to_end = function() {
 // move item
 
 methods.move_cursor = function(item_obj) {
+	// console.log("====");
 	var before_items = new Items();
+	// console.log(before_items);
+	// console.log(before_items.item.map(function(v) {if(v){return v.coord;}else{return;}}));
 	var set_items = new Items(item_obj);
+	// console.log(set_items);
+	// console.log(set_items.item.map(function(v) {if(v){return v.coord;}else{return;}}));
 	if(set_items.all_initialized()) {
 		if(before_items.all_initialized()) {
+			// console.log(before_items.all_initialized());
 			send("deselect_cursor", before_items);
 		}
 		send("select_cursor", set_items);
@@ -718,7 +724,7 @@ function makeup_display_html (base_data, html_templete) {
 }
 
 
-var list_item_limit = 400;
+var list_item_limit = 300;
 
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
@@ -740,7 +746,7 @@ methods.show_tweet = function (data) {
 				});
 				$("." + id).find(".img_wrap").replaceWith(item_html);
 			}
-			if(data.user.id_str == mydata.id_str) {
+			if(mydata && data.user.id_str == mydata.id_str) {
 				send("add_status", [item, "retweet"]);
 			}
 			return;
@@ -774,7 +780,7 @@ methods.show_tweet = function (data) {
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
 	}
 	// add item click event
-	$item.click(function(event) {
+	$item.mousedown(function(event) {
 		item_click(event, $(this));
 	});
 	// remove items to limit
@@ -798,7 +804,7 @@ methods.show_tweet = function (data) {
 //=========================
 
 methods.show_favorite = function(data) {
-	if(data.source.id_str == mydata.id_str) {
+	if(mydata && data.source.id_str == mydata.id_str) {
 		var item = new Item({"id" : data.target_object.id_str});
 		if(item.initialized) {
 			if(!(item.favorite())) {
@@ -815,7 +821,7 @@ methods.show_favorite = function(data) {
 //=========================
 
 methods.hide_favorite = function(data) {
-	if(data.source.id_str == mydata.id_str) {
+	if(mydata && data.source.id_str == mydata.id_str) {
 		var item = new Item({"id" : data.target_object.id_str});
 		if(item.initialized) {
 			if(item.favorite()) {
@@ -870,13 +876,13 @@ Container.prototype = {
 		this.yoffset_list.push(elm.position().top);
 	},
 	remove: function(coord) {
-		this.arrays.forEach(function(mthd, i) {
-			this[mthd].splice(coord, 1);
-		}, this);
-		this.selected.forEach(function(item, i) {
-			if(item.coord == coord) {
+		this.selected.forEach(function(id, i) {
+			if(id == this.id_list[coord]) {
 				this.selected.splice(i, 1);
 			}
+		}, this);
+		this.arrays.forEach(function(mthd, i) {
+			this[mthd].splice(coord, 1);
 		}, this);
 	},
 	coord: function(coord) {
@@ -919,13 +925,13 @@ Container.prototype = {
 	},
 	select: function(item) {
 		var exist_index = -1;
-		$.each(this.selected, function(i, item_each) {
-			if(item_each.coord == item.coord) {
+		$.each(this.selected, function(i, id) {
+			if(id == item.id) {
 				exist_index = i;
 			}
 		});
 		if(exist_index == -1) {
-			this.selected.push(item);
+			this.selected.push(item.id);
 			return this.selected;
 		} else {
 			return undefined;
@@ -933,8 +939,8 @@ Container.prototype = {
 	},
 	deselect: function(item) {
 		var delete_index = -1;
-		$.each(this.selected, function(i, item_each) {
-			if(item_each.coord == item.coord) {
+		$.each(this.selected, function(i, id) {
+			if(id == item.id) {
 				delete_index = i;
 			}
 		});
@@ -992,7 +998,7 @@ Item.prototype = {
 		}
 		// console.log(jQuery.extend(true, {}, this));
 		if(!(item_obj)) {
-			item_obj = itemChunk.selected[0];
+			item_obj = {"id" : itemChunk.selected[0]};
 		}
 		if(item_obj) {
 			var item = null;
@@ -1035,14 +1041,14 @@ Item.prototype = {
 	},
 	select: function() {
 		if(this.check()) {
-			return itemChunk.select(this);
+			itemChunk.select(this);
 		} else {
 			throw new Error("not initialized");
 		}
 	},
 	deselect: function() {
 		if(this.check()) {
-			return itemChunk.deselect(this);
+			itemChunk.deselect(this);
 		} else {
 			throw new Error("not initialized");
 		}
@@ -1079,7 +1085,6 @@ Item.prototype = {
 	},
 	remove: function() {
 		itemChunk.remove(this.coord);
-		return this;
 	}
 };
 
@@ -1098,7 +1103,10 @@ Items.prototype = {
 		this.initialized = [];
 
 		if(!(item_arr)) {
-			item_arr = itemChunk.selected;
+			item_arr = [];
+			itemChunk.selected.forEach(function(v, i) {
+				item_arr.push({"id" : v});
+			});
 		}
 		if(!(item_arr instanceof Array)) {
 			item_arr = [item_arr];
@@ -1154,22 +1162,18 @@ Items.prototype = {
 	},
 	select: function() {
 		if(this.all_initialized()) {
-			var item_selected = [];
 			$.each(this.item, function(i, item) {
-				item_selected[i] = item.select();
+				item.select();
 			});
-			return item_selected;
 		} else {
 			throw new Error("not initialized");
 		}
 	},
 	deselect: function() {
 		if(this.all_initialized()) {
-			var item_deselected = [];
 			$.each(this.item, function(i, item) {
-				item_deselected[i] = item.deselect();
+				item.deselect();
 			});
-			return item_deselected;
 		} else {
 			throw new Error("not initialized");
 		}
