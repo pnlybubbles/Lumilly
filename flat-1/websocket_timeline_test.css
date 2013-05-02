@@ -57,6 +57,12 @@ body {
 	margin: 0;
 	width: 100%;
 	height: auto;
+	display: -webkit-box;
+	display:    -moz-box;
+	display:         box;
+	-webkit-box-orient: horizontal;
+	   -moz-box-orient: horizontal;
+	        box-orient: horizontal;
 }
 
 
@@ -69,6 +75,12 @@ body {
 	/*border-top: 1px solid rgb(205, 244, 255);*/
 	border-top: 1px solid rgb(255, 255, 255);
 	padding: 12px;
+	-webkit-box-ordinal-group: 1;
+	   -moz-box-ordinal-group: 1;
+	        box-ordinal-group: 1;
+	-webkit-box-flex: 1;
+	   -moz-box-flex: 1;
+	        box-flex: 1;
 }
 
 .left_item {
@@ -155,6 +167,69 @@ body {
 	top: 12px;
 	font-size: 10px;
 	color: rgb(163, 163, 163);
+}
+
+/* buttons */
+
+.buttons_container {
+	display: none;
+	background-color: rgb(80, 80, 80);
+	border-top: 1px solid rgb(255, 255, 255);
+	position: relative;
+	width: 0;
+	right: 0;
+	-webkit-box-shadow: inset 1px 0 3px rgb(30, 30, 30);
+	-moz-box-shadow: inset 1px 0 3px rgb(30, 30, 30);
+	box-shadow: inset 1px 0 3px rgb(30, 30, 30);
+	-webkit-box-ordinal-group: 2;
+	   -moz-box-ordinal-group: 2;
+	        box-ordinal-group: 2;
+}
+
+.buttons_opened {
+	display: block;
+}
+
+.buttons_wrap {
+	display: none;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	-webkit-box-pack: center;
+	   -moz-box-pack: center;
+	        box-pack: center;
+	-webkit-box-align: center;
+	   -moz-box-align: center;
+	        box-align: center;
+	-webkit-box-orient: horizontal;
+	   -moz-box-orient: horizontal;
+	        box-orient: horizontal;
+}
+
+.buttons_complete_opened .buttons_wrap {
+	display: -webkit-box;
+	display:    -moz-box;
+	display:         box;
+}
+
+.action_button {
+	text-align: center;
+	margin: 0 13px;
+	color: rgb(245, 245, 245);
+	text-shadow: 0 1px 1px rgb(30, 30, 30);
+	font-size: 14px;
+}
+
+.action_button:active {
+	opacity: 0.8;
+}
+
+.favorite .favorite_button {
+	color: rgb(255, 213, 134);
+}
+
+.retweet .retweet_button {
+	color: rgb(183, 235, 126);
 }
 
 /* highlight */

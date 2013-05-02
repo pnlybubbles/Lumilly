@@ -31,7 +31,7 @@ function load_websocket () {
 
 function on_open () {
 	console.log("socket opened");
-	// tell("verify_credentials");
+	tell("verify_credentials");
 }
 
 function on_colse () {
@@ -529,25 +529,58 @@ methods.cursor_to_end = function() {
 // cursor control methods
 //=========================
 
-// move item
+
+// move item and open buttons
 
 methods.move_cursor = function(item_obj) {
-	// console.log("====");
 	var before_items = new Items();
-	// console.log(before_items);
-	// console.log(before_items.item.map(function(v) {if(v){return v.coord;}else{return;}}));
-	var set_items = new Items(item_obj);
-	// console.log(set_items);
-	// console.log(set_items.item.map(function(v) {if(v){return v.coord;}else{return;}}));
-	if(set_items.all_initialized()) {
+	var set_item = new Item(item_obj);
+	if(set_item.initialized) {
+		var selected = set_item.selected();
 		if(before_items.all_initialized()) {
-			// console.log(before_items.all_initialized());
 			send("deselect_cursor", before_items);
+			before_items.item.forEach(function(item) {
+				if(item.menu_opened() && item.id != set_item.id) {
+					send("hide_buttons", item);
+				}
+			});
 		}
-		send("select_cursor", set_items);
+		if(selected) {
+			// console.log(set_item.elm.find(".buttons_container").css("display"));
+			if(set_item.menu_opened()) {
+				send("hide_buttons", set_item);
+			} else {
+				send("open_buttons", set_item);
+			}
+		}
+		send("select_cursor", set_item);
 	} else {
-		throw new Error("item not found: " + JSON.stringify(set_items));
+		throw new Error("item not found: " + JSON.stringify(set_item));
 	}
+};
+
+
+// open buttons
+
+methods.open_buttons = function(item) {
+	item.menu_open();
+	item.elm.find(".buttons_container").addClass("buttons_opened").stop().animate({
+		"width" : "200"
+	}, 250, function() {
+		$(this).addClass("buttons_complete_opened");
+	});
+};
+
+
+// hide buttons
+
+methods.hide_buttons = function(item) {
+	item.menu_close();
+	item.elm.find(".buttons_container").removeClass("buttons_complete_opened").stop().animate({
+		"width" : "0"
+	}, 200, function() {
+		$(this).removeClass("buttons_opened");
+	});
 };
 
 
@@ -660,13 +693,13 @@ methods.set_my_data = function(data) {
 methods.add_status = function(argu) {
 	item = argu[0];
 	class_name = argu[1];
-	$("." + item.id).find(".statuses").addClass(class_name);
+	$("." + item.id).addClass(class_name);
 };
 
 methods.rm_status = function(argu) {
 	items = argu[0];
 	class_name = argu[1];
-	$("." + item.id).find(".statuses").removeClass(class_name);
+	$("." + item.id).removeClass(class_name);
 };
 
 
@@ -674,8 +707,8 @@ methods.rm_status = function(argu) {
 // show tweets on timeline
 //=========================
 
-var default_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div></div>';
-var retweet_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div></div>';
+var default_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
+var retweet_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
 var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
 var auto_scrolling = false;
 var mini_view = true;
@@ -785,6 +818,22 @@ methods.show_tweet = function (data) {
 	$item.mousedown(function(event) {
 		item_click(event, $(this));
 	});
+	// prevent event propagation on .buttons_container
+	var $buttons_container = $item.find(".buttons_container");
+	$buttons_container.mousedown(function(event) {
+		event.stopPropagation();
+	});
+	// add buttons event
+	var $buttons_wrap = $buttons_container.find(".buttons_wrap");
+	$buttons_wrap.find(".favorite_button").click(function() {
+		send("toggle_favorite");
+	});
+	$buttons_wrap.find(".retweet_button").click(function() {
+		send("toggle_retweet");
+	});
+	$buttons_wrap.find(".reply_button").click(function() {
+		send("create_reply");
+	});
 	// remove items to limit
 	setTimeout(function() {
 		if(!(auto_scrolling)) {
@@ -863,6 +912,7 @@ Container.prototype = {
 			this[mthd] = [];
 		}, this);
 		this["selected"] = [];
+		this["menu_opened"] = null;
 	},
 	add: function(data, elm) {
 		if(data.retweeted_status) {
@@ -887,6 +937,9 @@ Container.prototype = {
 				this.selected.splice(i, 1);
 			}
 		}, this);
+		if(this.menu_opened == this.id_list[coord]) {
+			this.menu_opened = null;
+		}
 		this.arrays.forEach(function(mthd, i) {
 			this[mthd].splice(coord, 1);
 		}, this);
@@ -1058,6 +1111,18 @@ Item.prototype = {
 		} else {
 			throw new Error("not initialized");
 		}
+	},
+	selected: function() {
+		return itemChunk.selected.indexOf(this.id) != -1;
+	},
+	menu_open: function() {
+		itemChunk.menu_opened = this.id;
+	},
+	menu_close: function() {
+		itemChunk.menu_opened = null;
+	},
+	menu_opened: function() {
+		return itemChunk.menu_opened == this.id;
 	},
 	rel_coord: function(relative) {
 		if(this.check()) {
