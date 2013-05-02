@@ -147,6 +147,9 @@ function set_events () {
 			case 35: //end
 			method = {"cursor_to_end" : ["tl"]};
 			break;
+			case 32: //space
+			method = {"toggle_buttons_opened" : ["tl"]};
+			break;
 			default:
 		}
 		// console.log(method);
@@ -525,6 +528,18 @@ methods.cursor_to_end = function() {
 };
 
 
+// toggle buttons opened
+
+methods.toggle_buttons_opened = function() {
+	var item = new Item();
+	if(item.buttons_opened()) {
+		send("close_buttons", item);
+	} else {
+		send("open_buttons", item);
+	}
+};
+
+
 //=========================
 // cursor control methods
 //=========================
@@ -540,15 +555,15 @@ methods.move_cursor = function(item_obj) {
 		if(before_items.all_initialized()) {
 			send("deselect_cursor", before_items);
 			before_items.item.forEach(function(item) {
-				if(item.menu_opened() && item.id != set_item.id) {
-					send("hide_buttons", item);
+				if(item.buttons_opened() && item.id != set_item.id) {
+					send("close_buttons", item);
 				}
 			});
 		}
 		if(selected) {
 			// console.log(set_item.elm.find(".buttons_container").css("display"));
-			if(set_item.menu_opened()) {
-				send("hide_buttons", set_item);
+			if(set_item.buttons_opened()) {
+				send("close_buttons", set_item);
 			} else {
 				send("open_buttons", set_item);
 			}
@@ -563,10 +578,10 @@ methods.move_cursor = function(item_obj) {
 // open buttons
 
 methods.open_buttons = function(item) {
-	item.menu_open();
+	item.buttons_open();
 	item.elm.find(".buttons_container").addClass("buttons_opened").stop().animate({
 		"width" : "200"
-	}, 250, function() {
+	}, 150, function() {
 		$(this).addClass("buttons_complete_opened");
 	});
 };
@@ -574,11 +589,11 @@ methods.open_buttons = function(item) {
 
 // hide buttons
 
-methods.hide_buttons = function(item) {
-	item.menu_close();
+methods.close_buttons = function(item) {
+	item.buttons_close();
 	item.elm.find(".buttons_container").removeClass("buttons_complete_opened").stop().animate({
 		"width" : "0"
-	}, 200, function() {
+	}, 150, function() {
 		$(this).removeClass("buttons_opened");
 	});
 };
@@ -912,7 +927,7 @@ Container.prototype = {
 			this[mthd] = [];
 		}, this);
 		this["selected"] = [];
-		this["menu_opened"] = null;
+		this["buttons_opened"] = null;
 	},
 	add: function(data, elm) {
 		if(data.retweeted_status) {
@@ -937,8 +952,8 @@ Container.prototype = {
 				this.selected.splice(i, 1);
 			}
 		}, this);
-		if(this.menu_opened == this.id_list[coord]) {
-			this.menu_opened = null;
+		if(this.buttons_opened == this.id_list[coord]) {
+			this.buttons_opened = null;
 		}
 		this.arrays.forEach(function(mthd, i) {
 			this[mthd].splice(coord, 1);
@@ -1115,14 +1130,14 @@ Item.prototype = {
 	selected: function() {
 		return itemChunk.selected.indexOf(this.id) != -1;
 	},
-	menu_open: function() {
-		itemChunk.menu_opened = this.id;
+	buttons_open: function() {
+		itemChunk.buttons_opened = this.id;
 	},
-	menu_close: function() {
-		itemChunk.menu_opened = null;
+	buttons_close: function() {
+		itemChunk.buttons_opened = null;
 	},
-	menu_opened: function() {
-		return itemChunk.menu_opened == this.id;
+	buttons_opened: function() {
+		return itemChunk.buttons_opened == this.id;
 	},
 	rel_coord: function(relative) {
 		if(this.check()) {
