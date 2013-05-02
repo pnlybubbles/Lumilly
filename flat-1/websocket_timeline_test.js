@@ -724,7 +724,7 @@ function makeup_display_html (base_data, html_templete) {
 }
 
 
-var list_item_limit = 300;
+var list_item_limit = 500;
 
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
@@ -775,9 +775,11 @@ methods.show_tweet = function (data) {
 		}
 	}
 	// auto scrolling to bottom
+	var remove_timeout = 0;
 	if(is_bottom) {
 		auto_scrolling = true;
 		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
+		remove_timeout = 210;
 	}
 	// add item click event
 	$item.mousedown(function(event) {
@@ -789,7 +791,11 @@ methods.show_tweet = function (data) {
 			if(itemChunk.id_list.length > (list_item_limit - 1)) {
 				$.each((new Array(itemChunk.id_list.length - (list_item_limit - 1))), function(i) {
 					remove_item = new Item({"coord" : i});
+					var fix_scroll_height = remove_item.elm.height();
 					remove_item.elm.remove();
+					if(!(is_bottom)) {
+						$body.scrollTop($body.scrollTop() - fix_scroll_height);
+					}
 					remove_item.remove();
 				});
 			}
