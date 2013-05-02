@@ -161,6 +161,11 @@ body {
 	font-size: 12px;
 }
 
+.text a {
+	color: rgb(28, 28, 28);
+	text-decoration: none;
+}
+
 .created_at {
 	position: absolute;
 	right: 12px;
@@ -259,6 +264,11 @@ body {
 
 .selected .text {
 	color: rgb(255, 255, 255);
+}
+
+.selected .text a {
+	color: rgb(255, 255, 255);
+	text-decoration: underline;
 }
 
 .selected .created_at {

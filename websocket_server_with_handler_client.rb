@@ -27,6 +27,8 @@ module App
 			ACCESS_TOKEN_SECRET
 			)
 
+			$my_data = self.verify_credentials
+
 			# Twitter.configure do |config|
 			#     config.consumer_key = CONSUMER_KEY
 			#     config.consumer_secret = CONSUMER_SECRET
@@ -102,10 +104,7 @@ module App
 	end
 
 	class WebSocket
-		attr_accessor :q
-
 		def initialize
-			@q = Queue.new
 			@controller = App::Controller.new
 			@receiver = App::Receiver.new
 		end
@@ -175,6 +174,10 @@ module App
 	end
 
 	class Controller
+		def initialize
+			@growl = App::Growl.new
+		end
+
 		def respose(res)
 			mthd = nil
 			argu = res
@@ -189,7 +192,7 @@ module App
 					end
 				}
 				res['created_at'][:datetime] = created_at.to_s
-				if(res['retweeted_status'])
+				if res['retweeted_status']
 					retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
 					res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
 					res['retweeted_status']['created_at'].each { |k, v|
@@ -198,6 +201,12 @@ module App
 						end
 					}
 					res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
+					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
+						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
+					end
+				end
+				if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
+					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
 				end
 				mthd = "show_tweet"
 				argu = res
@@ -208,10 +217,13 @@ module App
 			when res['event']
 				case res['event']
 				when 'follow'
-					
+					@growl.notify("Follow", "@#{res['source']['screen_name']}\nres['source']['name']")
 				when 'unfollow'
 
 				when 'favorite'
+					if $my_data && res['source']['id'] != $my_data['id']
+						@growl.notify("Favorite: @#{res['source']['screen_name']}", res['target_object']['text'])
+					end
 					mthd = "show_favorite"
 					argu = res
 				when 'unfavorite'
@@ -250,7 +262,16 @@ module App
 		end
 
 		def verify_credentials(argu)
-			return "set_my_data", @twitter_api.verify_credentials
+			if $my_data
+				return "set_my_data", $my_data
+			else
+				return verify_credentials_refresh(argu)
+			end
+		end
+
+		def verify_credentials_refresh(argu)
+			$my_data = @twitter_api.verify_credentials
+			return "set_my_data", $my_data
 		end
 
 		def update(argu)
@@ -259,6 +280,12 @@ module App
 
 		def copy(argu)
 			system("printf '#{argu[0].strip}' | pbcopy");
+		end
+	end
+
+	class Growl
+		def notify(title, text)
+			system("growlnotify -m '#{text}' -t '#{title}'")
 		end
 	end
 end

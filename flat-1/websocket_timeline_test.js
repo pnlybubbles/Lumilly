@@ -730,22 +730,29 @@ var mini_view = true;
 
 function makeup_display_html (base_data, html_templete) {
 	var data;
+	// check retweet or not
 	if(base_data.retweeted_status) {
 		data = base_data.retweeted_status;
 	} else {
 		data = base_data;
 	}
+	// replace newline
 	var text = data.text.replace(/\n/g, "<br>");
+	// replace urls
 	if(data.entities.urls.length !== 0) {
 		data.entities.urls.forEach(function(urls, i) {
-			text = text.replace(data.entities.urls[i].url, data.entities.urls[i].expanded_url);
+			var url_html = "<a href='" + data.entities.urls[i].expanded_url + "' target='_blank'>" + data.entities.urls[i].display_url + "</a>";
+			text = text.replace(data.entities.urls[i].url, url_html);
 		});
 	}
+	// replace media urls
 	if(data.entities.media) {
 		data.entities.media.forEach(function(media, i) {
-			text = text.replace(data.entities.media[i].url, data.entities.media[i].expanded_url);
+			var media_html = "<a href='" + data.entities.media[i].expanded_url + "' target='_blank'>" + data.entities.media[i].display_url + "</a>";
+			text = text.replace(data.entities.media[i].url, media_html);
 		});
 	}
+	// replace tweet data
 	item_html = html_templete.replace_with({
 		"%screen_name%" : data.user.screen_name,
 		"%name%" : data.user.name,
@@ -754,6 +761,7 @@ function makeup_display_html (base_data, html_templete) {
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
 		"%id%" : data.id_str
 	});
+	// check mini view to add mini class
 	if(mini_view) {
 		item_html = item_html.replace_with({
 			"%mini_view%" : "mini"
@@ -763,6 +771,7 @@ function makeup_display_html (base_data, html_templete) {
 			"%mini_view%" : ""
 		});
 	}
+	// replace retweet source profile image if retweet
 	if(base_data.retweeted_status) {
 		item_html = item_html.replace_with({
 			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
@@ -836,6 +845,10 @@ methods.show_tweet = function (data) {
 	// prevent event propagation on .buttons_container
 	var $buttons_container = $item.find(".buttons_container");
 	$buttons_container.mousedown(function(event) {
+		event.stopPropagation();
+	});
+	// prevent event propagation on .text a
+	$item_container.find("a").mousedown(function(event) {
 		event.stopPropagation();
 	});
 	// add buttons event
