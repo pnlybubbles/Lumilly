@@ -8,40 +8,13 @@ body {
 }
 
 .container {
+	display: none;
 	width: 100%;
-	margin-bottom: 60px;
+	margin-bottom: 85px;
 }
 
-.post_field {
-	bottom: 0;
-	position: fixed;
-	width: 100%;
-	height: 60px;
-	padding: 5px 40px 5px 5px;
-	background-color: rgb(255, 255, 255);
-	border-top: 1px solid rgb(50, 50, 50);
-	-webkit-box-sizing: border-box;
-	   -moz-box-sizing: border-box;
-	        box-sizing: border-box;
-}
-
-.post_textarea {
-	width: 100%;
-	height: 100%;
-	border: none;
-	resize: none;
-	outline: none;
-	font-size: 13px;
-	overflow: hidden;
-}
-
-.post_textarea_count {
-	position: absolute;
-	font-size: 13px;
-	right: 8px;
-	bottom: 6px;
-	font-weight: bold;
-	color: rgb(130, 130, 130);
+.active {
+	display: block;
 }
 
 .event_listener_layer {
@@ -397,4 +370,83 @@ body {
 
 .retweet_symbol {
 	background-color: rgb(152, 239, 52);
+}
+
+/* bottom */
+
+.bottom_wrap {
+	bottom: 0;
+	position: fixed;
+	width: 100%;
+}
+
+.post_field {
+	position: relative;
+	height: 60px;
+	padding: 5px 40px 5px 5px;
+	background-color: rgb(255, 255, 255);
+	border-top: 1px solid rgb(50, 50, 50);
+	-webkit-box-sizing: border-box;
+	   -moz-box-sizing: border-box;
+	        box-sizing: border-box;
+}
+
+.post_textarea {
+	width: 100%;
+	height: 100%;
+	border: none;
+	resize: none;
+	outline: none;
+	font-size: 13px;
+	overflow: hidden;
+}
+
+.post_textarea_count {
+	position: absolute;
+	font-size: 13px;
+	right: 8px;
+	bottom: 6px;
+	font-weight: bold;
+	color: rgb(130, 130, 130);
+}
+
+/* tab */
+
+.tab {
+	position: relative;
+	width: 100%;
+	height: 28px;
+	background-color: rgb(80, 80, 80);
+	border-top: 1px solid rgb(50, 50, 50);
+	-webkit-box-sizing: border-box;
+	   -moz-box-sizing: border-box;
+	        box-sizing: border-box;
+}
+
+.tab_list_box {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	display: -webkit-box;
+	display:    -moz-box;
+	display:         box;
+	-webkit-box-align: center;
+	   -moz-box-align: center;
+	        box-align: center;
+	-webkit-box-orient: horizontal;
+	   -moz-box-orient: horizontal;
+	        box-orient: horizontal;
+
+}
+
+.ls {
+	color: rgb(245, 245, 245);
+	text-shadow: 0 1px 1px rgb(30, 30, 30);
+	font-size: 12px;
+	padding: 0 20px;
+	border-right: 2px solid rgb(50, 50, 50);
+}
+
+.ls:active {
+	opacity: 0.8;
 }

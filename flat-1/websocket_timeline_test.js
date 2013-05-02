@@ -5,8 +5,8 @@ var $post_textarea;
 var post_textarea;
 
 function load () {
-	$container = $(".container");
 	$body = $("body");
+	tab_setup();
 	container_margin = parseInt($container.css("margin-bottom"), 10);
 	$post_textarea = $(".post_textarea");
 	post_textarea = document.getElementsByClassName('post_textarea')[0];
@@ -32,6 +32,8 @@ function load_websocket () {
 function on_open () {
 	console.log("socket opened");
 	tell("verify_credentials");
+	tell("home_timeline", [0, 200], "fill_timeline");
+	tell("mention_timeline", [0, 200], "fill_timeline");
 }
 
 function on_colse () {
@@ -86,11 +88,14 @@ function method_missing (method, argu) {
 // tell method
 // send method and argument to ruby client
 
-function tell (method, argu) {
+function tell (method, argu, func) {
 	if(!(argu instanceof Array)) {
 		argu = [argu];
 	}
-	command = {"method": method, "argu": argu};
+	if(func === undefined) {
+		func = null;
+	}
+	command = {"method": method, "argu": argu, "callback": func};
 	console.log(command);
 	ws.send(JSON.stringify({"client": command}));
 }
@@ -250,8 +255,8 @@ function get_item_from_mouse_offset (event) {
 	console.log(+new Date());
 	var yoffset = event.pageY;
 	var offset_item;
-	var item_element_list = $.extend(true, [], itemChunk.element_list);
-	// var item_element_list = $.extend(true, [], itemChunk.yoffset_list);
+	var item_element_list = $.extend(true, [], itemChunk[act].element_list);
+	// var item_element_list = $.extend(true, [], itemChunk[act].yoffset_list);
 	console.log(+new Date());
 	item_element_list.reverse();
 	for(var i in item_element_list) {
@@ -293,7 +298,7 @@ methods.go_prev = function() {
 	var items = new Items();
 	var prev_item;
 	if(!(items.all_initialized())) {
-		items = new Items(itemChunk.last());
+		items = new Items(itemChunk[act].last());
 		prev_item = items.first();
 	} else {
 		prev_item = items.first().prev();
@@ -319,7 +324,7 @@ methods.go_next = function() {
 	var items = new Items();
 	var next_item;
 	if(!(items.all_initialized())) {
-		items = new Items(itemChunk.last());
+		items = new Items(itemChunk[act].last());
 		next_item = items.first();
 	} else {
 		next_item = items.first().next();
@@ -516,7 +521,7 @@ methods.copy_tweet = function() {
 // cursor to end item
 
 methods.cursor_to_end = function() {
-	var end_item = itemChunk.last();
+	var end_item = itemChunk[act].last();
 	send("move_cursor", end_item);
 	if(end_item.elm.offset().top < $body.scrollTop() || (end_item.elm.offset().top + end_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
 		var scroll_top = (end_item.elm.offset().top + end_item.elm.height()) - (window.innerHeight / 2);
@@ -812,12 +817,25 @@ methods.show_tweet = function (data) {
 		id = data.id_str;
 		item_html = makeup_display_html(data, default_templete);
 	}
-	// add to dom and item
-	$container.append(item_html);
+	// add to dom
+	var tab_num = [];
+	$containers[0].append(item_html);
+	if(data.tab.length !== 0) {
+		data.tab.forEach(function(tab_name, i) {
+			tab_num.push(tab.indexOf(tab_name));
+			$containers[tab_num[i]].append(item_html);
+		});
+	}
+	// add to item
 	var $item = $("." + id);
-	itemChunk.add(data, $item);
-	var $item_container = $item.find(".item_container");
+	itemChunk[0].add(data, $item);
+	if(data.tab) {
+		data.tab.forEach(function(tab_name, i) {
+			itemChunk[tab_num[i]].add(data, $item);
+		});
+	}
 	// check item type
+	var $item_container = $item.find(".item_container");
 	if(mydata) {
 		if(data.entities.user_mentions.length !== 0) {
 			for(var v in data.entities.user_mentions) {
@@ -865,8 +883,8 @@ methods.show_tweet = function (data) {
 	// remove items to limit
 	setTimeout(function() {
 		if(!(auto_scrolling)) {
-			if(itemChunk.id_list.length > (list_item_limit - 1)) {
-				$.each((new Array(itemChunk.id_list.length - (list_item_limit - 1))), function(i) {
+			if(itemChunk[act].id_list.length > (list_item_limit - 1)) {
+				$.each((new Array(itemChunk[act].id_list.length - (list_item_limit - 1))), function(i) {
 					remove_item = new Item({"coord" : i});
 					var fix_scroll_height = remove_item.elm.height();
 					remove_item.elm.remove();
@@ -878,7 +896,7 @@ methods.show_tweet = function (data) {
 			}
 		}
 	}, 210);
-	document.title = itemChunk.id_list.length;
+	document.title = itemChunk[act].id_list.length;
 };
 
 
@@ -913,6 +931,53 @@ methods.hide_favorite = function(data) {
 			}
 		}
 	}
+};
+
+
+//=========================
+// Tab
+//=========================
+
+ 
+// tab setup
+
+var act = 0;
+var itemChunk = [];
+var tab = ["timeline", "mention"];
+var tab_label = ["Timeline", "mention"];
+var $containers = [];
+
+function tab_setup () {
+	var $tab_list_box = $(".tab_list_box");
+	var $list_view = $(".list_view");
+	tab.forEach(function(value, i) {
+		$tab_list_box.append("<div class='ls " + value + "'>" + tab_label[i] + "</div>");
+		$tab_list_box.find(".ls").mousedown(function() {
+			toggle_tab(tab.indexOf($(this).attr("class").replace(/ls\s*/, "")));
+		});
+		$list_view.append("<div class='container " + value + "'></div>");
+		$containers[i] = $(".container." + tab[i]);
+		itemChunk[i] = new Container();
+	});
+	$container = $(".container." + tab[act]);
+	$container.addClass("active");
+}
+
+
+// toggle tab
+
+function toggle_tab (num) {
+	$container.removeClass("active");
+	$container = $(".container." + tab[num]);
+	$container.addClass("active");
+	act = num;
+}
+
+methods.fill_timeline = function (datals) {
+	console.log(datals);
+	datals.reverse().forEach(function(data) {
+		send("show_tweet", data);
+	});
 };
 
 
@@ -1071,8 +1136,6 @@ Container.prototype = {
 // Item class
 //=========================
 
-var itemChunk = new Container();
-
 function Item() {
     this.initialize.apply(this, arguments);
 }
@@ -1080,17 +1143,18 @@ function Item() {
 Item.prototype = {
 	initialize: function(item_obj) {
 		this.initialized = false;
-		for(var key in itemChunk.init_obj){
-			this[key] = itemChunk.init_obj[key];
+		this.act = act;
+		for(var key in itemChunk[this.act].init_obj){
+			this[key] = itemChunk[this.act].init_obj[key];
 		}
 		// console.log(jQuery.extend(true, {}, this));
 		if(!(item_obj)) {
-			item_obj = {"id" : itemChunk.selected[0]};
+			item_obj = {"id" : itemChunk[this.act].selected[0]};
 		}
 		if(item_obj) {
 			var item = null;
 			if(item_obj.coord !== undefined) {
-				item = itemChunk.coord(item_obj.coord);
+				item = itemChunk[this.act].coord(item_obj.coord);
 				if(item) {
 					for(key in item) {
 						this[key] = item[key];
@@ -1101,7 +1165,7 @@ Item.prototype = {
 					return undefined;
 				}
 			} else if(item_obj.id) {
-				item = itemChunk.id(item_obj.id);
+				item = itemChunk[this.act].id(item_obj.id);
 				if(item) {
 					for(key in item) {
 						this[key] = item[key];
@@ -1128,33 +1192,33 @@ Item.prototype = {
 	},
 	select: function() {
 		if(this.check()) {
-			itemChunk.select(this);
+			itemChunk[this.act].select(this);
 		} else {
 			throw new Error("not initialized");
 		}
 	},
 	deselect: function() {
 		if(this.check()) {
-			itemChunk.deselect(this);
+			itemChunk[this.act].deselect(this);
 		} else {
 			throw new Error("not initialized");
 		}
 	},
 	selected: function() {
-		return itemChunk.selected.indexOf(this.id) != -1;
+		return itemChunk[this.act].selected.indexOf(this.id) != -1;
 	},
 	buttons_open: function() {
-		itemChunk.buttons_opened = this.id;
+		itemChunk[this.act].buttons_opened = this.id;
 	},
 	buttons_close: function() {
-		itemChunk.buttons_opened = null;
+		itemChunk[this.act].buttons_opened = null;
 	},
 	buttons_opened: function() {
-		return itemChunk.buttons_opened == this.id;
+		return itemChunk[this.act].buttons_opened == this.id;
 	},
 	rel_coord: function(relative) {
 		if(this.check()) {
-			var rel_item = itemChunk.coord(this.coord + relative);
+			var rel_item = itemChunk[this.act].coord(this.coord + relative);
 			if(rel_item) {
 				return new Item(rel_item);
 			} else {
@@ -1171,19 +1235,19 @@ Item.prototype = {
 		return this.rel_coord(-1);
 	},
 	retweet: function(data) {
-		this.retweets = itemChunk.retweet(this, data);
+		this.retweets = itemChunk[this.act].retweet(this, data);
 	},
 	favorite: function(tf) {
 		if(tf === undefined) {
 			return this.favorited;
 		} else {
 			this.favorited = !(!(tf));
-			itemChunk.favorite(this, this.favorited);
+			itemChunk[this.act].favorite(this, this.favorited);
 			return this.favorited;
 		}
 	},
 	remove: function() {
-		itemChunk.remove(this.coord);
+		itemChunk[this.act].remove(this.coord);
 	}
 };
 
@@ -1200,10 +1264,11 @@ Items.prototype = {
 	initialize: function(item_arr) {
 		this.item = [];
 		this.initialized = [];
+		this.act = act;
 
 		if(!(item_arr)) {
 			item_arr = [];
-			itemChunk.selected.forEach(function(v, i) {
+			itemChunk[this.act].selected.forEach(function(v, i) {
 				item_arr.push({"id" : v});
 			});
 		}

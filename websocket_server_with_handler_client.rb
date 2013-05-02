@@ -12,6 +12,10 @@ require 'daemons'
 # require 'twitter'
 require '../key_token.rb'
 
+$res_data = []
+$res_home = []
+$res_mention = []
+
 module App
 	class TwitterAPI
 		def initialize
@@ -91,6 +95,14 @@ module App
 			return JSON.parse(@access_token.get("/account/verify_credentials.json").body)
 		end
 
+		def home_timeline(count)
+			return JSON.parse(@access_token.get("/statuses/home_timeline.json?count=#{count}").body)
+		end
+
+		def mentions_timeline(count)
+			return JSON.parse(@access_token.get("/statuses/mentions_timeline.json?count=#{count}").body)
+		end
+
 		def update(text, *id)
 			if(id.empty? && id[0])
 				@access_token.post('/statuses/update.json', 
@@ -152,7 +164,7 @@ module App
 						data = event_data["#{from}"]
 						Thread.new(ws) { |ws_t|
 							begin
-								mthd, argu = @receiver.send(data["method"], data["argu"]);
+								mthd, argu = @receiver.send(data["method"], data["argu"], data["callback"]);
 								if mthd && argu
 									command = {:method => mthd, :argu => argu}
 									msg = {:server => command}
@@ -181,6 +193,7 @@ module App
 		def respose(res)
 			mthd = nil
 			argu = res
+			$res_data.unshift(res)
 
 			case
 			when res['text']
@@ -205,9 +218,14 @@ module App
 						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
 					end
 				end
+				res_tab = []
+				$res_home.unshift(res)
 				if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
+					res_tab << "mention"
+					$res_mention.unshift(res)
 					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
 				end
+				res[:tab] = res_tab
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
@@ -245,23 +263,23 @@ module App
 			@twitter_api = App::TwitterAPI.new
 		end
 
-		def favorite(argu)
+		def favorite(argu, func)
 			@twitter_api.favorite(argu[0])
 		end
 
-		def unfavorite(argu)
+		def unfavorite(argu, func)
 			@twitter_api.unfavorite(argu[0])
 		end
 
-		def retweet(argu)
+		def retweet(argu, func)
 			@twitter_api.retweet(argu[0])
 		end
 
-		def destroy(argu)
+		def destroy(argu, func)
 			@twitter_api.destroy(argu[0])
 		end
 
-		def verify_credentials(argu)
+		def verify_credentials(argu, func)
 			if $my_data
 				return "set_my_data", $my_data
 			else
@@ -269,24 +287,67 @@ module App
 			end
 		end
 
-		def verify_credentials_refresh(argu)
+		def verify_credentials_refresh(argu, func)
 			$my_data = @twitter_api.verify_credentials
 			return "set_my_data", $my_data
 		end
 
-		def update(argu)
+		def update(argu, func)
 			@twitter_api.update(argu[0], argu[1]);
 		end
 
-		def copy(argu)
+		def copy(argu, func)
 			system("printf '#{argu[0].strip}' | pbcopy");
+		end
+
+		def home_timeline(argu, func)
+			from = argu[0]
+			num = argu[1]
+			# if $res_data.length < num
+			# 	func, data = home_timeline_refresh([200], func)
+			# 	$res_data = data + $res_data
+			# end
+			return func, $res_home[from, num]
+		end
+
+		# def home_timeline_refresh(argu, func)
+		# 	return func, @twitter_api.home_timeline(argu[0])
+		# end
+
+		def mention_timeline(argu, func)
+			from = argu[0]
+			num = argu[1]
+			# if $res_mention.length < num
+			# 	func, data = mention_timeline_refresh([200], func)
+			# 	$res_mention = data + $res_mention
+			# end
+			return func, $res_mention[from, num]
+		end
+
+		# def mention_timeline_refresh(argu, func)
+		# 	return func, @twitter_api.mentions_timeline(argu[0])
+		# end
+
+		def filter_timeline(argu, func)
+			from = argu[0]
+			num = argu[1]
+			filter = argu[2]
+			return_data = []
+			$res_data.each_with_index { |res, i|
+				next if i < from
+				break if i > from + num - 1
+				if res['text'] =~ /#{filter}/
+					return_data << res
+				end
+			}
+			return func, return_data
 		end
 	end
 
 	class Growl
 		def notify(title, text)
 			system("growlnotify -m '#{text}' -t '#{title}'")
-			system("notify-send -t 5000 '#{title}' '#{text}'")
+			# system("notify-send -t 5000 '#{title}' '#{text}'")
 		end
 	end
 end
