@@ -286,6 +286,7 @@ module App
 	class Growl
 		def notify(title, text)
 			system("growlnotify -m '#{text}' -t '#{title}'")
+			system("notify-send -t 5000 '#{title}' '#{text}'")
 		end
 	end
 end
