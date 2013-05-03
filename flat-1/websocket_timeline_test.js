@@ -141,7 +141,7 @@ function set_events () {
 			method = {"toggle_textarea_focus" : ["both"]};
 			break;
 			case 13: //enter
-			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl", "noprevent"], "create_reply" : ["tl"]};
+			method = {"enter_to_post" : ["type", "ctrl", "noprevent"], "type_newline" : ["type"], "create_reply" : ["tl"]};
 			break;
 			case 67: //c
 			method = {"copy_tweet" : ["tl", "meta"]};
@@ -786,7 +786,7 @@ function makeup_display_html (base_data, html_templete) {
 }
 
 
-var list_item_limit = 500;
+var list_item_limit = 230;
 
 methods.show_tweet = function (data) {
 	var window_height = window.innerHeight;
