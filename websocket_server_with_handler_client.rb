@@ -207,6 +207,7 @@ module App
 				}
 				res['created_at'][:datetime_num] = created_at.strftime("%Y%m%d%H%M%S");
 				res['created_at'][:datetime] = created_at.to_s
+				res['real_created_at'] = res['created_at']
 				if res['retweeted_status']
 					retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
 					res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
@@ -216,7 +217,8 @@ module App
 						end
 					}
 					res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
-					res['retweeted_status']['created_at'][:datetime_num] = retweeted_created_at.strftime("%Y%m%d%H%M%S");
+					res['retweeted_status']['created_at'][:datetime_num] = retweeted_created_at.strftime("%Y%m%d%H%M%S")
+					res['retweeted_status']['real_created_at'] = res['created_at']
 					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
 						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
 					end

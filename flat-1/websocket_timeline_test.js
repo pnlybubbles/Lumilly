@@ -70,7 +70,7 @@ function send (method, argu) {
 				console.log("method: " + method);
 				console.log("queue: " + callback_queue.func[callback_queue.id.indexOf(method)]);
 				send(method, argu);
-			}, 10);
+			}, 10000);
 			return;
 		} else {
 			method = callback_queue.func[0];
@@ -867,11 +867,11 @@ methods.show_tweet = function (data) {
 					var before_item_id = $(this).attr("class").match(/[0-9]+/)[0];
 					// console.log($(this));
 					var before_item = new Item({"id" : before_item_id}, i);
-					console.log(".");
-					// console.log(before_item);
+					// console.log(".");
+					// console.log(before_item.src);
 					// console.log(before_item.src.text);
-					// console.log(parseInt(before_item.src.created_at.datetime_num, 10) + ":" + parseInt(data.created_at.datetime_num, 10));
-					if(parseInt(before_item.src.created_at.datetime_num, 10) <= parseInt(data.created_at.datetime_num, 10)) {
+					console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
+					if(parseInt(before_item.src.real_created_at.datetime_num, 10) <= parseInt(data.real_created_at.datetime_num, 10)) {
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
 						return false;
