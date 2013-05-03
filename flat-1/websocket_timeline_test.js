@@ -11,8 +11,8 @@ function load () {
 	$post_textarea = $(".post_textarea");
 	post_textarea = document.getElementsByClassName('post_textarea')[0];
 	$post_textarea_count = $(".post_textarea_count");
-	load_websocket();
 	set_events();
+	load_websocket();
 }
 
 
@@ -31,7 +31,7 @@ function load_websocket () {
 
 function on_open () {
 	console.log("socket opened");
-	tell("verify_credentials");
+	tell("verify_credentials", null, "set_my_data");
 	tell("home_timeline", [0, 200], "fill_timeline");
 	tell("mention_timeline", [0, 200], "fill_timeline");
 }
@@ -62,6 +62,22 @@ function on_message (evt) {
 var methods = {};
 
 function send (method, argu) {
+	var callback_method = false;
+	if(method == parseInt(method, 10) && callback_queue.id.length > 0) {
+		console.log(JSON.stringify(callback_queue));
+		if(callback_queue.id[0] != method) {
+			setTimeout(function() {
+				console.log("method: " + method);
+				console.log("queue: " + callback_queue.func[callback_queue.id.indexOf(method)]);
+				send(method, argu);
+			}, 10);
+			return;
+		} else {
+			method = callback_queue.func[0];
+			callback_method = true;
+		}
+	}
+	console.log(method + ":start");
 	if(methods[method] === undefined) {
 		method_missing(method, argu);
 	} else {
@@ -70,6 +86,12 @@ function send (method, argu) {
 		} else {
 			methods[method](argu);
 		}
+	}
+	console.log(method + ":end");
+	if(callback_method) {
+		callback_queue.id.shift();
+		callback_queue.func.shift();
+		console.log(JSON.stringify(callback_queue));
 	}
 }
 
@@ -88,14 +110,22 @@ function method_missing (method, argu) {
 // tell method
 // send method and argument to ruby client
 
+var callback_queue = {
+	"func" : [],
+	"id" : []
+};
+
 function tell (method, argu, func) {
 	if(!(argu instanceof Array)) {
 		argu = [argu];
 	}
-	if(func === undefined) {
-		func = null;
+	var callback_id = null;
+	if(func !== undefined) {
+		callback_id = String(Math.ceil(Math.random() * 1000000000));
+		callback_queue.func.push(func);
+		callback_queue.id.push(callback_id);
 	}
-	command = {"method": method, "argu": argu, "callback": func};
+	command = {"method": method, "argu": argu, "callback": callback_id};
 	console.log(command);
 	ws.send(JSON.stringify({"client": command}));
 }
@@ -819,19 +849,50 @@ methods.show_tweet = function (data) {
 	}
 	// add to dom
 	var tab_num = [];
-	$containers[0].append(item_html);
+	var insert_coord = [];
+	console.log("====");
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
+			console.log(tab_name);
 			tab_num.push(tab.indexOf(tab_name));
-			$containers[tab_num[i]].append(item_html);
+			var $containers_children = $containers[tab_num[i]].children();
+			insert_coord[i] = $containers_children.length;
+			console.log(insert_coord[i]);
+			console.log(data.created_at.datetime);
+			if(insert_coord[i] === 0) {
+				$containers[tab_num[i]].prepend(item_html);
+			}
+			$($containers_children.get().reverse()).each(function(j) {
+				if (!(new Item({ "id" : id }, i).initialized)) {
+					var before_item_id = $(this).attr("class").match(/[0-9]+/)[0];
+					// console.log($(this));
+					var before_item = new Item({"id" : before_item_id}, i);
+					console.log(".");
+					// console.log(before_item);
+					// console.log(before_item.src.text);
+					// console.log(parseInt(before_item.src.created_at.datetime_num, 10) + ":" + parseInt(data.created_at.datetime_num, 10));
+					if(parseInt(before_item.src.created_at.datetime_num, 10) <= parseInt(data.created_at.datetime_num, 10)) {
+						insert_coord[i] = insert_coord[i] - j;
+						$($containers_children[insert_coord[i] - 1]).after(item_html);
+						return false;
+					}
+					if(j == insert_coord[i] - 1) {
+						$containers[tab_num[i]].prepend(item_html);
+						insert_coord[i] = 0;
+						return false;
+					}
+				}
+			});
+			console.log(insert_coord[i]);
 		});
 	}
 	// add to item
 	var $item = $("." + id);
-	itemChunk[0].add(data, $item);
-	if(data.tab) {
-		data.tab.forEach(function(tab_name, i) {
-			itemChunk[tab_num[i]].add(data, $item);
+	if(insert_coord.length > 0) {
+		insert_coord.forEach(function(coord, i) {
+			if (coord !== undefined) {
+				itemChunk[tab_num[i]].add(data, $item, coord);
+			}
 		});
 	}
 	// check item type
@@ -938,14 +999,15 @@ methods.hide_favorite = function(data) {
 // Tab
 //=========================
 
- 
+
 // tab setup
 
 var act = 0;
 var itemChunk = [];
 var tab = ["timeline", "mention"];
-var tab_label = ["Timeline", "mention"];
+var tab_label = ["Timeline", "Mention"];
 var $containers = [];
+var tab_scroll_top = [];
 
 function tab_setup () {
 	var $tab_list_box = $(".tab_list_box");
@@ -958,6 +1020,7 @@ function tab_setup () {
 		$list_view.append("<div class='container " + value + "'></div>");
 		$containers[i] = $(".container." + tab[i]);
 		itemChunk[i] = new Container();
+		tab_scroll_top[i] = 10000;
 	});
 	$container = $(".container." + tab[act]);
 	$container.addClass("active");
@@ -967,9 +1030,11 @@ function tab_setup () {
 // toggle tab
 
 function toggle_tab (num) {
+	tab_scroll_top[act] = $body.scrollTop();
 	$container.removeClass("active");
 	$container = $(".container." + tab[num]);
 	$container.addClass("active");
+	$body.scrollTop(tab_scroll_top[num]);
 	act = num;
 }
 
@@ -978,6 +1043,14 @@ methods.fill_timeline = function (datals) {
 	datals.reverse().forEach(function(data) {
 		send("show_tweet", data);
 	});
+	// var cnt = 0;
+	// $.each(datals.reverse(), function(i, data) {
+	// 	cnt += 1;
+	// 	send("show_tweet", data);
+	// 	if (cnt >= 20) {
+	// 		// return false;
+	// 	}
+	// });
 };
 
 
@@ -1007,22 +1080,26 @@ Container.prototype = {
 		this["selected"] = [];
 		this["buttons_opened"] = null;
 	},
-	add: function(data, elm) {
-		if(data.retweeted_status) {
-			this.id_list.push(data.retweeted_status.id_str);
-			this.favorited_list.push(data.retweeted_status.favorited);
-			this.retweeted_list.push(data.retweeted_status.retweeted);
-			this.retweets_list.push([data]);//array
-			this.source_list.push(data.retweeted_status);
-		} else {
-			this.id_list.push(data.id_str);
-			this.favorited_list.push(data.favorited);
-			this.retweeted_list.push(data.retweeted);
-			this.retweets_list.push([]);//array
-			this.source_list.push(data);
+	add: function(data, elm, coord) {
+		if (coord === undefined) {
+			coord = id_list.length;
 		}
-		this.element_list.push(elm);
-		this.yoffset_list.push(elm.position().top);
+		if(data.retweeted_status) {
+			this.id_list.splice(coord, 0, data.retweeted_status.id_str);
+			this.favorited_list.splice(coord, 0, data.retweeted_status.favorited);
+			this.retweeted_list.splice(coord, 0, data.retweeted_status.retweeted);
+			this.retweets_list.splice(coord, 0, [data]);//array
+			this.source_list.splice(coord, 0, data.retweeted_status);
+		} else {
+			this.id_list.splice(coord, 0, data.id_str);
+			this.favorited_list.splice(coord, 0, data.favorited);
+			this.retweeted_list.splice(coord, 0, data.retweeted);
+			this.retweets_list.splice(coord, 0, []);//array
+			this.source_list.splice(coord, 0, data);
+		}
+		this.element_list.splice(coord, 0, elm);
+		this.yoffset_list.splice(coord, 0, elm.position().top);
+		// console.log(JSON.stringify(this.source_list.map(function(v) { return v.text; })));
 	},
 	remove: function(coord) {
 		this.selected.forEach(function(id, i) {
@@ -1141,9 +1218,13 @@ function Item() {
 }
 
 Item.prototype = {
-	initialize: function(item_obj) {
+	initialize: function(item_obj, tab) {
 		this.initialized = false;
-		this.act = act;
+		if (tab !== undefined) {
+			this.act = tab;
+		} else {
+			this.act = act;
+		}
 		for(var key in itemChunk[this.act].init_obj){
 			this[key] = itemChunk[this.act].init_obj[key];
 		}
