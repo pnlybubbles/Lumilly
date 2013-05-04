@@ -77,7 +77,7 @@ function send (method, argu) {
 			callback_method = true;
 		}
 	}
-	console.log(method + ":start");
+	// console.log(method + ":start");
 	if(methods[method] === undefined) {
 		method_missing(method, argu);
 	} else {
@@ -87,7 +87,7 @@ function send (method, argu) {
 			methods[method](argu);
 		}
 	}
-	console.log(method + ":end");
+	// console.log(method + ":end");
 	if(callback_method) {
 		callback_queue.id.shift();
 		callback_queue.func.shift();
@@ -682,6 +682,7 @@ methods.select_cursor = function(items) {
 	if(!(items instanceof Items)) {
 		items = new Items(items);
 	}
+	console.log(items);
 	items.select();
 	$.each(items.item, function(i, item) {
 		var $item_container = item.elm.find(".item_container");
@@ -824,41 +825,41 @@ methods.show_tweet = function (data) {
 	var item_html;
 	var id;
 	//console.log(data);
-	// check retweet item
-	if(data.retweeted_status) {
-		id = data.retweeted_status.id_str;
-		item_html = makeup_display_html(data, retweet_templete);
-		item = new Item({"id" : id});
-		if(item.initialized) {
-			item.retweet(data);
-			if(Object.keys(item.retweets).length == 1) {
-				item_html = retweet_img_templete.replace_with({
-					"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
-					"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
-				});
-				$("." + id).find(".img_wrap").replaceWith(item_html);
-			}
-			if(mydata && data.user.id_str == mydata.id_str) {
-				send("add_status", [item, "retweet"]);
-			}
-			return;
-		}
-	} else {
-		id = data.id_str;
-		item_html = makeup_display_html(data, default_templete);
-	}
-	// add to dom
 	var tab_num = [];
 	var insert_coord = [];
-	console.log("====");
+	// console.log("====");
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
-			console.log(tab_name);
+			// check retweet item
+			if(data.retweeted_status) {
+				id = data.retweeted_status.id_str;
+				item = new Item({"id" : id}, i);
+				if(item.initialized) {
+					item.retweet(data);
+					if(Object.keys(item.retweets).length == 1) {
+						item_html = retweet_img_templete.replace_with({
+							"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
+							"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
+						});
+						$("." + id).find(".img_wrap").replaceWith(item_html);
+					}
+					if(mydata && data.user.id_str == mydata.id_str) {
+						send("add_status", [item, "retweet"]);
+					}
+					return;
+				}
+				item_html = makeup_display_html(data, retweet_templete);
+			} else {
+				id = data.id_str;
+				item_html = makeup_display_html(data, default_templete);
+			}
+			// add to dom
+			// console.log(tab_name);
 			tab_num.push(tab.indexOf(tab_name));
 			var $containers_children = $containers[tab_num[i]].children();
 			insert_coord[i] = $containers_children.length;
-			console.log(insert_coord[i]);
-			console.log(data.created_at.datetime);
+			// console.log(insert_coord[i]);
+			// console.log(data.created_at.datetime);
 			if(insert_coord[i] === 0) {
 				$containers[tab_num[i]].prepend(item_html);
 			}
@@ -870,7 +871,7 @@ methods.show_tweet = function (data) {
 					// console.log(".");
 					// console.log(before_item.src);
 					// console.log(before_item.src.text);
-					console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
+					// console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
 					if(parseInt(before_item.src.real_created_at.datetime_num, 10) <= parseInt(data.real_created_at.datetime_num, 10)) {
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
@@ -881,82 +882,89 @@ methods.show_tweet = function (data) {
 						insert_coord[i] = 0;
 						return false;
 					}
+				} else {
+					insert_coord[i] = null;
 				}
 			});
-			console.log(insert_coord[i]);
+			// console.log(insert_coord[i]);
 		});
 	}
 	// add to item
-	var $item = $("." + id);
 	if(insert_coord.length > 0) {
-		insert_coord.forEach(function(coord, i) {
-			if (coord !== undefined) {
+		$.each(insert_coord, function(i, coord) {
+			var $item;
+			if (coord !== null) {
+				$item = $(".container." + tab[i]).find("." + id);
 				itemChunk[tab_num[i]].add(data, $item, coord);
+			} else {
+				return true;
 			}
-		});
-	}
-	// check item type
-	var $item_container = $item.find(".item_container");
-	if(mydata) {
-		if(data.entities.user_mentions.length !== 0) {
-			for(var v in data.entities.user_mentions) {
-				if(data.entities.user_mentions[v].id_str == mydata.id_str) {
-					$item_container.addClass("reply");
-					break;
+			// check item type
+			var $item_container = $item.find(".item_container");
+			if(mydata) {
+				if(data.entities.user_mentions.length !== 0) {
+					for(var v in data.entities.user_mentions) {
+						if(data.entities.user_mentions[v].id_str == mydata.id_str) {
+							$item_container.addClass("reply");
+							break;
+						}
+					}
+				}
+				if(data.user.id_str == mydata.id_str) {
+					$item_container.addClass("mine");
 				}
 			}
-		}
-		if(data.user.id_str == mydata.id_str) {
-			$item_container.addClass("mine");
-		}
-	}
-	// auto scrolling to bottom
-	var remove_timeout = 0;
-	if(is_bottom) {
-		auto_scrolling = true;
-		$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
-		remove_timeout = 210;
-	}
-	// add item click event
-	$item.mousedown(function(event) {
-		item_click(event, $(this));
-	});
-	// prevent event propagation on .buttons_container
-	var $buttons_container = $item.find(".buttons_container");
-	$buttons_container.mousedown(function(event) {
-		event.stopPropagation();
-	});
-	// prevent event propagation on .text a
-	$item_container.find("a").mousedown(function(event) {
-		event.stopPropagation();
-	});
-	// add buttons event
-	var $buttons_wrap = $buttons_container.find(".buttons_wrap");
-	$buttons_wrap.find(".favorite_button").click(function() {
-		send("toggle_favorite");
-	});
-	$buttons_wrap.find(".retweet_button").click(function() {
-		send("toggle_retweet");
-	});
-	$buttons_wrap.find(".reply_button").click(function() {
-		send("create_reply");
-	});
-	// remove items to limit
-	setTimeout(function() {
-		if(!(auto_scrolling)) {
-			if(itemChunk[act].id_list.length > (list_item_limit - 1)) {
-				$.each((new Array(itemChunk[act].id_list.length - (list_item_limit - 1))), function(i) {
-					remove_item = new Item({"coord" : i});
-					var fix_scroll_height = remove_item.elm.height();
-					remove_item.elm.remove();
-					if(!(is_bottom)) {
-						$body.scrollTop($body.scrollTop() - fix_scroll_height);
-					}
-					remove_item.remove();
-				});
+			// auto scrolling to bottom
+			var remove_timeout = 0;
+			if(act == i) {
+				if(is_bottom) {
+					auto_scrolling = true;
+					$body.stop(true, false).animate({ scrollTop: $container.height() + container_margin - window_height }, 200, 'easeOutQuad', function(){ auto_scrolling = false; });
+					remove_timeout = 210;
+				}
 			}
-		}
-	}, 210);
+			// add item click event
+			$item.mousedown(function(event) {
+				item_click(event, $(this));
+			});
+			// prevent event propagation on .buttons_container
+			var $buttons_container = $item.find(".buttons_container");
+			$buttons_container.mousedown(function(event) {
+				event.stopPropagation();
+			});
+			// prevent event propagation on .text a
+			$item_container.find("a").mousedown(function(event) {
+				event.stopPropagation();
+			});
+			// add buttons event
+			var $buttons_wrap = $buttons_container.find(".buttons_wrap");
+			$buttons_wrap.find(".favorite_button").click(function() {
+				send("toggle_favorite");
+			});
+			$buttons_wrap.find(".retweet_button").click(function() {
+				send("toggle_retweet");
+			});
+			$buttons_wrap.find(".reply_button").click(function() {
+				send("create_reply");
+			});
+			// remove items to limit
+			setTimeout(function() {
+				if(!(auto_scrolling)) {
+					if(itemChunk[act].id_list.length > (list_item_limit - 1)) {
+						$.each((new Array(itemChunk[act].id_list.length - (list_item_limit - 1))), function(i) {
+							remove_item = new Item({"coord" : i});
+							var fix_scroll_height = remove_item.elm.height();
+							remove_item.elm.remove();
+							if(!(is_bottom)) {
+								$body.scrollTop($body.scrollTop() - fix_scroll_height);
+							}
+							remove_item.remove();
+						});
+					}
+				}
+			}, 210);
+		});
+	}
 	document.title = itemChunk[act].id_list.length;
 };
 
