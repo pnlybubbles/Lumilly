@@ -382,12 +382,12 @@ methods.toggle_favorite = function() {
 		if(!(item.favorite())) {
 			tell("favorite", item.id);
 			item.favorite(true);
-			send("add_status", [item, "favorite"]);
+			send("add_status", [item.id, "favorite"]);
 		} else {
 			if(items.item.length == 1) {
 				tell("unfavorite", item.id);
 				item.favorite(false);
-				send("rm_status", [item, "favorite"]);
+				send("rm_status", [item.id, "favorite"]);
 			}
 		}
 	});
@@ -742,15 +742,15 @@ methods.set_my_data = function(data) {
 //=========================
 
 methods.add_status = function(argu) {
-	item = argu[0];
+	id = argu[0];
 	class_name = argu[1];
-	$("." + item.id).addClass(class_name);
+	$("." + id).addClass(class_name);
 };
 
 methods.rm_status = function(argu) {
-	items = argu[0];
+	id = argu[0];
 	class_name = argu[1];
-	$("." + item.id).removeClass(class_name);
+	$("." + id).removeClass(class_name);
 };
 
 
@@ -844,7 +844,7 @@ methods.show_tweet = function (data) {
 						$("." + id).find(".img_wrap").replaceWith(item_html);
 					}
 					if(mydata && data.user.id_str == mydata.id_str) {
-						send("add_status", [item, "retweet"]);
+						send("add_status", [id, "retweet"]);
 					}
 					return;
 				}
@@ -889,9 +889,10 @@ methods.show_tweet = function (data) {
 			// console.log(insert_coord[i]);
 		});
 	}
-	// add to item
+	// construct item
 	if(insert_coord.length > 0) {
 		$.each(insert_coord, function(i, coord) {
+			// add to item
 			var $item;
 			if (coord !== null) {
 				$item = $(".container." + tab[i]).find("." + id);
@@ -913,6 +914,10 @@ methods.show_tweet = function (data) {
 				if(data.user.id_str == mydata.id_str) {
 					$item_container.addClass("mine");
 				}
+			}
+			// check favorite
+			if(data.favorited) {
+				send("add_status", [id, "favorite"]);
 			}
 			// auto scrolling to bottom
 			var remove_timeout = 0;
@@ -976,14 +981,18 @@ methods.show_tweet = function (data) {
 methods.show_favorite = function(data) {
 	if(mydata && data.source.id_str == mydata.id_str) {
 		var item = new Item({"id" : data.target_object.id_str});
-		if(item.initialized) {
-			if(!(item.favorite())) {
-				item.favorite(true);
-				send("add_status", [item, "favorite"]);
-			}
-		}
+		favorite_item(item);
 	}
 };
+
+function favorite_item (item) {
+	if(item.initialized) {
+		if(!(item.favorite())) {
+			item.favorite(true);
+			send("add_status", [item.id, "favorite"]);
+		}
+	}
+}
 
 
 //=========================
@@ -993,14 +1002,18 @@ methods.show_favorite = function(data) {
 methods.hide_favorite = function(data) {
 	if(mydata && data.source.id_str == mydata.id_str) {
 		var item = new Item({"id" : data.target_object.id_str});
-		if(item.initialized) {
-			if(item.favorite()) {
-				item.favorite(false);
-				send("rm_status", [item, "favorite"]);
-			}
-		}
+		unfavorite_item(item);
 	}
 };
+
+function unfavorite_item (item) {
+	if(item.initialized) {
+		if(item.favorite()) {
+			item.favorite(false);
+			send("rm_status", [item.id, "favorite"]);
+		}
+	}
+}
 
 
 //=========================

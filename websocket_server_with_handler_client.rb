@@ -248,9 +248,41 @@ module App
 					if $my_data && res['source']['id'] != $my_data['id']
 						@growl.notify("Favorite: @#{res['source']['screen_name']}", res['target_object']['text'])
 					end
+					Thread.new {
+						if $my_data && res['source']['id'] == $my_data['id']
+							$res_home.each_with_index { |v, i|
+								if v['id'] == res['target_object']['id']
+									$res_home[i]['favorited'] = true
+									break
+								end
+							}
+							$res_mention.each_with_index { |v, i|
+								if v['id'] == res['target_object']['id']
+									$res_mention[i]['favorited'] = true
+									break
+								end
+							}
+						end
+					}
 					mthd = "show_favorite"
 					argu = res
 				when 'unfavorite'
+					Thread.new {
+						if $my_data && res['source']['id'] == $my_data['id']
+							$res_home.each_with_index { |v, i|
+								if v['id'] == res['target_object']['id']
+									$res_home[i]['favorited'] = false
+									break
+								end
+							}
+							$res_mention.each_with_index { |v, i|
+								if v['id'] == res['target_object']['id']
+									$res_mention[i]['favorited'] = false
+									break
+								end
+							}
+						end
+					}
 					mthd = "hide_favorite"
 					argu = res
 				else
