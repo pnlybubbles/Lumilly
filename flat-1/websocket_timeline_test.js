@@ -1016,6 +1016,7 @@ var tab = ["timeline", "mention"];
 var tab_label = ["Timeline", "Mention"];
 var $containers = [];
 var tab_scroll_top = [];
+var tab_is_bottom = [];
 
 function tab_setup () {
 	var $tab_list_box = $(".tab_list_box");
@@ -1029,6 +1030,7 @@ function tab_setup () {
 		$containers[i] = $(".container." + tab[i]);
 		itemChunk[i] = new Container();
 		tab_scroll_top[i] = 10000;
+		tab_is_bottom[i] = true;
 	});
 	$container = $(".container." + tab[act]);
 	$container.addClass("active");
@@ -1038,11 +1040,17 @@ function tab_setup () {
 // toggle tab
 
 function toggle_tab (num) {
+	var window_height = window.innerHeight;
 	tab_scroll_top[act] = $body.scrollTop();
+	tab_is_bottom[act] = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	$container.removeClass("active");
 	$container = $(".container." + tab[num]);
 	$container.addClass("active");
-	$body.scrollTop(tab_scroll_top[num]);
+	if(tab_is_bottom[num]) {
+		$body.scrollTop($container.height() + container_margin - window_height);
+	} else {
+		$body.scrollTop(tab_scroll_top[num]);
+	}
 	act = num;
 }
 
