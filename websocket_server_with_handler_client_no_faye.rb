@@ -125,15 +125,11 @@ module App
 		end
 
 		def server
-			@sv_pid = fork do
-				exec "ruby websocket_server_deamon.rb"
-			end
-
-			@sv = Process.detach(@sv_pid)
+			@sv_pid = spawn('ruby', 'websocket_server_deamon.rb')
 		end
 
 		def stop_server
-			@sv.exit
+			Process.kill 'KILL', @sv_pid
 		end
 
 		def client
@@ -161,7 +157,7 @@ module App
 							end
 						rescue Exception => e
 							puts "#### ERROR: #{e} ####"
-							puts e.backtrace
+							# puts e.backtrace
 						end
 					}
 				end
@@ -184,7 +180,7 @@ module App
 				}
 			rescue Exception => e
 				puts "#### ERROR: #{e} ####"
-				puts e.backtrace
+				# puts e.backtrace
 			end
 		end
 	end
