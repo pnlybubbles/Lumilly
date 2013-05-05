@@ -1,49 +1,55 @@
 #概要
 
-Mac用 Twitter Client
+*Luminous（ルミナス）*
 
-他のプラットフォームへの移植も検討中。
+Twitterクライアント
 
-今は試作段階ですのでRubyとブラウザがあれば実行できます。(windowsを除く)
+現在は試作段階ですのでRubyとブラウザがあれば実行できます。(windowsを除く)
 
 #ファイル
 
-###html, css  
-Twitter ClientのUI
+###css
+
+タイムラインのUIを構成するスタイルシートが含まれる。
 
 ###js
-Twitter ClientのUIのコントロール、ハンドリングクライアントからのデータの表示
 
+タイムラインのUI処理を行うスクリプトが含まれる。`libs`フォルダ内は利用されるライブラリを含む。
 
-###websocket_server_deamon.rb
-WebSocketサーバー
+###rb
 
-###websocket_server_with_handler_client.rb
-Twitter Clientとしてのハンドリングクライアント  
-`websocket_server_deamon.rb`を起動し、UIからのコマンドをWebsocketから取得し実行する。  
-(AppDelegate.rb)
+* luminous.rb ---- TwitterAPIよりデータを取得し、WebSocketを介してUIの制御を行う。
+
+* websocket_server_daemon.rb ---- WebSocketサーバー
+
+* websocket_server_with_handler_client_no_faye.rb ---- Windows向けにfaye-websocketを利用せずにluminous.rbを移植したもの。（不安定かつ更新は行われない）
+
+###main.html
+
+タイムラインのUIを構成する。
 
 #実行
 
-* ブラウザ
+* ブラウザ（Chrome推奨）
 * Ruby1.9.3以上
-* 前提gem(4つ)
+* 前提gem（4つ）
+* Oauth Key
 
 ###gemのインストール
 
 	gem install oauth daemons faye-websocket em-websocket
 
-(windowsだと`faye-websocket`のインストールができません。)
+(windowsの場合`faye-websocket`のインストールができません。)
 
 ###Oauth key
 
-ConsumerKey,AcccessTokenは自分で入れて下さい。
+ConsumerKey, AcccessTokenは自分で入れて下さい。
 
-`websocket_server_with_handler_client.rb`の該当箇所をコメントアウト
+	key_token.rb
 
-	# require '../key_token.rb'
+というファイルを作成し、２つ上の階層に配置してください。(`../../key_token.rb`)
 
-ConsumerKey,AcccessTokenを取ってきて、以下のようにファイルの先頭の方に追加して下さい。
+ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.rb`に追加して下さい。
 
 	CONSUMER_KEY        = "*"
 	CONSUMER_SECRET     = "*"
@@ -54,11 +60,11 @@ ConsumerKey,AcccessTokenを取ってきて、以下のようにファイルの�
 
 ###実行
 
-	ruby websocket_server_with_handler_client.rb
+	ruby luminous.rb
 
-これを実行した後、ブラウザで`websocket_timeline_test.html`を開く。
+これを実行した後、ブラウザで`main.html`を開きます。
 
-`websocket_server_with_handler_client.rb`の終了は`^C`で行なって下さい。
+`luminous.rb`の終了は`^C`で行なって下さい。
 
 
 #ライセンス
