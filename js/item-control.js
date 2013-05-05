@@ -12,7 +12,7 @@ Item GUI control
 function clicked_cursor (item) {
 	if(item.initialized) {
 		if(item.selected()) {
-			if(set_item.buttons_opened()) {
+			if(item.buttons_opened()) {
 				close_buttons(item);
 			} else {
 				open_buttons(item);
@@ -30,9 +30,9 @@ function move_cursor(item) {
 	if(item.initialized) {
 		if(before_items.all_initialized()) {
 			deselect_cursor(before_items);
-			before_items.item.forEach(function(item) {
-				if(item.buttons_opened() && item.id != item.id) {
-					close_buttons(item);
+			before_items.item.forEach(function(item_each) {
+				if(item_each.buttons_opened() && item.id != item_each.id) {
+					close_buttons(item_each);
 				}
 			});
 		}
