@@ -33,7 +33,7 @@ function on_open () {
 	console.log("socket opened");
 	tell("verify_credentials", null, "set_my_data");
 	tell("home_timeline", [0, 200], "fill_timeline");
-	tell("mention_timeline", [0, 200], "fill_timeline");
+	tell("mention_timeline", [0, 50], "fill_timeline");
 }
 
 function on_colse () {
@@ -67,10 +67,10 @@ function send (method, argu) {
 		console.log(JSON.stringify(callback_queue));
 		if(callback_queue.id[0] != method) {
 			setTimeout(function() {
-				console.log("method: " + method);
-				console.log("queue: " + callback_queue.func[callback_queue.id.indexOf(method)]);
+				console.log("callback id: " + method);
+				console.log("callback queue: " + callback_queue.func[callback_queue.id.indexOf(method)]);
 				send(method, argu);
-			}, 10000);
+			}, 1000);
 			return;
 		} else {
 			method = callback_queue.func[0];
@@ -682,7 +682,6 @@ methods.select_cursor = function(items) {
 	if(!(items instanceof Items)) {
 		items = new Items(items);
 	}
-	console.log(items);
 	items.select();
 	$.each(items.item, function(i, item) {
 		var $item_container = item.elm.find(".item_container");
@@ -828,6 +827,7 @@ methods.show_tweet = function (data) {
 	var tab_num = [];
 	var insert_coord = [];
 	// console.log("====");
+	// console.log(data);
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
 			// check retweet item

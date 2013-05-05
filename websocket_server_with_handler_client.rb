@@ -12,7 +12,8 @@ require 'daemons'
 # require 'twitter'
 require '../key_token.rb'
 
-$res_data = []
+require 'pp'
+
 $res_home = []
 $res_mention = []
 
@@ -30,8 +31,6 @@ module App
 			ACCESS_TOKEN,
 			ACCESS_TOKEN_SECRET
 			)
-
-			$my_data = self.verify_credentials
 
 			# Twitter.configure do |config|
 			#     config.consumer_key = CONSUMER_KEY
@@ -115,10 +114,18 @@ module App
 		end
 	end
 
-	class WebSocket
+	class Accessor
 		def initialize
 			@controller = App::Controller.new
 			@receiver = App::Receiver.new
+			@twitter_api = App::TwitterAPI.new
+			@constructor = App::Constructor.new
+		end
+
+		def initialize_data
+			$my_data = @twitter_api.verify_credentials
+			$res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
+			$res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
 		end
 
 		def server
@@ -142,7 +149,7 @@ module App
 
 					Thread.new(ws) { |ws_t|
 						begin
-							App::TwitterAPI.new.connect { |res|
+							@twitter_api.connect { |res|
 								# p res
 								mthd, argu = @controller.respose(res)
 								command = {:method => mthd, :argu => argu}
@@ -182,6 +189,8 @@ module App
 					p [:close, event.code, event.reason]
 					ws = nil
 				end
+
+				puts "==== client is running"
 			}
 		end
 	end
@@ -189,49 +198,26 @@ module App
 	class Controller
 		def initialize
 			@growl = App::Growl.new
+			@constructor = App::Constructor.new
 		end
 
 		def respose(res)
 			mthd = nil
 			argu = res
-			$res_data.unshift(res)
 
 			case
 			when res['text']
-				created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
-				res['created_at'] = DateTime._parse(created_at.to_s)
-				res['created_at'].each { |k, v|
-					if v.to_s.length < 2
-						res['created_at'][k] = ("00" + v.to_s)[-2,2]
-					end
-				}
-				res['created_at'][:datetime_num] = created_at.strftime("%Y%m%d%H%M%S");
-				res['created_at'][:datetime] = created_at.to_s
-				res['real_created_at'] = res['created_at']
 				if res['retweeted_status']
-					retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
-					res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
-					res['retweeted_status']['created_at'].each { |k, v|
-						if v.to_s.length < 2
-							res['retweeted_status']['created_at'][k] = ("00" + v.to_s)[-2,2]
-						end
-					}
-					res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
-					res['retweeted_status']['created_at'][:datetime_num] = retweeted_created_at.strftime("%Y%m%d%H%M%S")
-					res['retweeted_status']['real_created_at'] = res['created_at']
 					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
 						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
 					end
 				end
-				res_tab = []
-				res_tab << "timeline"
 				$res_home.unshift(res)
 				if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
-					res_tab << "mention"
-					$res_mention.unshift(res)
 					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
+					$res_mention.unshift(res)
 				end
-				res[:tab] = res_tab
+				res = @constructor.text(res)
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
@@ -296,6 +282,40 @@ module App
 		end
 	end
 
+	class Constructor
+		def text(res)
+			created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
+			res['created_at'] = DateTime._parse(created_at.to_s)
+			res['created_at'].each { |k, v|
+				if v.to_s.length < 2
+					res['created_at'][k] = ("00" + v.to_s)[-2,2]
+				end
+			}
+			res['created_at'][:datetime_num] = created_at.strftime("%Y%m%d%H%M%S");
+			res['created_at'][:datetime] = created_at.to_s
+			res['real_created_at'] = res['created_at']
+			if res['retweeted_status']
+				retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
+				res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
+				res['retweeted_status']['created_at'].each { |k, v|
+					if v.to_s.length < 2
+						res['retweeted_status']['created_at'][k] = ("00" + v.to_s)[-2,2]
+					end
+				}
+				res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
+				res['retweeted_status']['created_at'][:datetime_num] = retweeted_created_at.strftime("%Y%m%d%H%M%S")
+				res['retweeted_status']['real_created_at'] = res['created_at']
+			end
+			res_tab = []
+			res_tab << "timeline"
+			if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
+				res_tab << "mention"
+			end
+			res[:tab] = res_tab
+			return res
+		end
+	end
+
 	class Receiver
 		def initialize
 			@twitter_api = App::TwitterAPI.new
@@ -341,16 +361,16 @@ module App
 		def home_timeline(argu)
 			from = argu[0]
 			num = argu[1]
-			# if $res_data.length < num
+			# if $res_home.length < num
 			# 	func, data = home_timeline_refresh([200], func)
-			# 	$res_data = data + $res_data
+			# 	$res_home = data + $res_home
 			# end
 			return $res_home[from, num]
 		end
 
-		# def home_timeline_refresh(argu, func)
-		# 	return func, @twitter_api.home_timeline(argu[0])
-		# end
+		def home_timeline_refresh(argu)
+			return @twitter_api.home_timeline(argu[0])
+		end
 
 		def mention_timeline(argu)
 			from = argu[0]
@@ -362,16 +382,16 @@ module App
 			return $res_mention[from, num]
 		end
 
-		# def mention_timeline_refresh(argu, func)
-		# 	return func, @twitter_api.mentions_timeline(argu[0])
-		# end
+		def mention_timeline_refresh(argu)
+			return @twitter_api.mentions_timeline(argu[0])
+		end
 
 		def filter_timeline(argu)
 			from = argu[0]
 			num = argu[1]
 			filter = argu[2]
 			return_data = []
-			$res_data.each_with_index { |res, i|
+			$res_home.each_with_index { |res, i|
 				next if i < from
 				break if i > from + num - 1
 				if res['text'] =~ /#{filter}/
@@ -391,11 +411,13 @@ module App
 end
 
 puts "==== #{DateTime.now}"
-luminous = App::WebSocket.new
+puts "==== constructing instance"
+luminous = App::Accessor.new
+luminous.initialize_data
 luminous.server
 
 Signal.trap(:INT){
-puts "Stoping Server"
+puts puts "==== stopping server"
 	luminous.stop_server
 	exit(0)
 }
