@@ -64,7 +64,7 @@ methods.toggle_favorite = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
 		if(!(item.favorite())) {
-			tell("favorite", item.id);
+			tell("favorite", item.id_src);
 			favorite_item(item);
 		} else {
 			if(items.item.length == 1) {
@@ -82,7 +82,7 @@ methods.toggle_retweet = function() {
 	var items = new Items();
 	$.each(items.item, function(i, item) {
 		if(!(item.retweeted)) {
-			tell("retweet", item.id);
+			tell("retweet", item.id_src);
 		} else {
 			if(items.item.length == 1) {
 				tell("destroy", item.retweeted);

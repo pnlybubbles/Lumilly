@@ -139,27 +139,17 @@ function show_item(data) {
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
 			// add to dom
-			// console.log(tab_name);
 			tab_num.push(tab.indexOf(tab_name));
 			var $containers_children = $containers[tab_num[i]].children();
 			insert_coord[i] = $containers_children.length;
-			// console.log(insert_coord[i]);
-			// console.log(data.created_at.datetime);
 			if(insert_coord[i] === 0) {
 				$containers[tab_num[i]].prepend(item_html);
 			}
 			$($containers_children.get().reverse()).each(function(j) {
 				if (!(new Item({ "id" : id }, i).initialized)) {
 					var before_item_id = $(this).attr("_id_");
-					// console.log($(this));
 					var before_item = new Item({"id" : before_item_id}, i);
-					// console.log(".");
-					// console.log($(this));
-					// console.log(before_item_id);
-					// console.log(before_item.src.text);
-					// console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
 					if(compareId(data.id_str, before_item.src.id_str)) {
-						// console.log(idParseInt(data.id_str, 10) + ":" + data.id_str);
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
 						return false;
@@ -173,10 +163,8 @@ function show_item(data) {
 					insert_coord[i] = null;
 				}
 			});
-			// console.log(insert_coord[i]);
 		});
 	}
-	// console.log(insert_coord);
 	// construct item
 	if(insert_coord.length > 0) {
 		$.each(insert_coord, function(i, coord) {
@@ -206,6 +194,10 @@ function show_item(data) {
 			// check favorite
 			if(data.favorited) {
 				add_status(id_src, "favorite");
+			}
+			// check retweet
+			if(data.retweeted) {
+				add_status(id_src, "retweet");
 			}
 			// auto scrolling to bottom
 			var remove_timeout = 0;

@@ -124,8 +124,8 @@ module App
 
 		def initialize_data
 			$my_data = @twitter_api.verify_credentials
-			@twitter_api.home_timeline(200).each { |res| @constructor.update_text(res) }
-			@twitter_api.mentions_timeline(200).each { |res| @constructor.update_text(res) }
+			$res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
+			$res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
 		end
 
 		def server
@@ -207,14 +207,16 @@ module App
 
 			case
 			when res['text']
+				res = @constructor.text(res)
 				if res['retweeted_status']
 					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
 						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
 					end
 				elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
 					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
+					$res_mention.unshift(res)
 				end
-				res = @constructor.update_text(res)
+				$res_home.unshift(res)
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
@@ -254,7 +256,7 @@ module App
 	end
 
 	class Constructor
-		def update_text(res)
+		def text(res)
 			res[:tab] = []
 			res[:tab] << "timeline"
 			created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
@@ -274,25 +276,27 @@ module App
 					end
 				}
 				res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
+				if res['user']['id'] == $my_data['id']
+					res['retweeted'] = true
+					res['retweeted_status']['retweeted'] = true
+				end
 			elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
 				res[:tab] << "mention"
-				$res_mention.unshift(res)
 			end
-			$res_home.unshift(res)
 			return res
 		end
 
-		def update_favorited(res, true_false)
+		def update_favorited(res, boolean)
 			if $my_data && res['source']['id'] == $my_data['id']
 				$res_home.each_with_index { |v, i|
 					if v['id'] == res['target_object']['id']
-						$res_home[i]['favorited'] = true_false
+						$res_home[i]['favorited'] = boolean
 						break
 					end
 				}
 				$res_mention.each_with_index { |v, i|
 					if v['id'] == res['target_object']['id']
-						$res_mention[i]['favorited'] = true_false
+						$res_mention[i]['favorited'] = boolean
 						break
 					end
 				}
