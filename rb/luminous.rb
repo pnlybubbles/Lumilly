@@ -124,8 +124,8 @@ module App
 
 		def initialize_data
 			$my_data = @twitter_api.verify_credentials
-			$res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
-			$res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
+			@twitter_api.home_timeline(200).each { |res| @constructor.update_text(res) }
+			@twitter_api.mentions_timeline(200).each { |res| @constructor.update_text(res) }
 		end
 
 		def server
@@ -211,13 +211,10 @@ module App
 					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
 						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
 					end
-				end
-				$res_home.unshift(res)
-				if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
+				elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
 					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
-					$res_mention.unshift(res)
 				end
-				res = @constructor.text(res)
+				res = @constructor.update_text(res)
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
@@ -227,7 +224,7 @@ module App
 			when res['event']
 				case res['event']
 				when 'follow'
-					@growl.notify("Follow", "@#{res['source']['screen_name']}\nres['source']['name']")
+					@growl.notify("Follow: @#{res['source']['screen_name']}", res['source']['name'])
 				when 'unfollow'
 
 				when 'favorite'
@@ -235,39 +232,13 @@ module App
 						@growl.notify("Favorite: @#{res['source']['screen_name']}", res['target_object']['text'])
 					end
 					Thread.new {
-						if $my_data && res['source']['id'] == $my_data['id']
-							$res_home.each_with_index { |v, i|
-								if v['id'] == res['target_object']['id']
-									$res_home[i]['favorited'] = true
-									break
-								end
-							}
-							$res_mention.each_with_index { |v, i|
-								if v['id'] == res['target_object']['id']
-									$res_mention[i]['favorited'] = true
-									break
-								end
-							}
-						end
+						@constructor.update_favorited(res, true)
 					}
 					mthd = "show_favorite"
 					argu = res
 				when 'unfavorite'
 					Thread.new {
-						if $my_data && res['source']['id'] == $my_data['id']
-							$res_home.each_with_index { |v, i|
-								if v['id'] == res['target_object']['id']
-									$res_home[i]['favorited'] = false
-									break
-								end
-							}
-							$res_mention.each_with_index { |v, i|
-								if v['id'] == res['target_object']['id']
-									$res_mention[i]['favorited'] = false
-									break
-								end
-							}
-						end
+						@constructor.update_favorited(res, false)
 					}
 					mthd = "hide_favorite"
 					argu = res
@@ -283,7 +254,9 @@ module App
 	end
 
 	class Constructor
-		def text(res)
+		def update_text(res)
+			res[:tab] = []
+			res[:tab] << "timeline"
 			created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
 			res['created_at'] = DateTime._parse(created_at.to_s)
 			res['created_at'].each { |k, v|
@@ -291,9 +264,7 @@ module App
 					res['created_at'][k] = ("00" + v.to_s)[-2,2]
 				end
 			}
-			# res['created_at'][:datetime_num] = created_at.strftime("%Y%m%d%H%M%S");
 			res['created_at'][:datetime] = created_at.to_s
-			# res['real_created_at'] = res['created_at']
 			if res['retweeted_status']
 				retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
 				res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
@@ -303,16 +274,29 @@ module App
 					end
 				}
 				res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
-				# res['retweeted_status']['created_at'][:datetime_num] = retweeted_created_at.strftime("%Y%m%d%H%M%S")
-				# res['retweeted_status']['real_created_at'] = res['created_at']
+			elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
+				res[:tab] << "mention"
+				$res_mention.unshift(res)
 			end
-			res_tab = []
-			res_tab << "timeline"
-			if $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
-				res_tab << "mention"
-			end
-			res[:tab] = res_tab
+			$res_home.unshift(res)
 			return res
+		end
+
+		def update_favorited(res, true_false)
+			if $my_data && res['source']['id'] == $my_data['id']
+				$res_home.each_with_index { |v, i|
+					if v['id'] == res['target_object']['id']
+						$res_home[i]['favorited'] = true_false
+						break
+					end
+				}
+				$res_mention.each_with_index { |v, i|
+					if v['id'] == res['target_object']['id']
+						$res_mention[i]['favorited'] = true_false
+						break
+					end
+				}
+			end
 		end
 	end
 

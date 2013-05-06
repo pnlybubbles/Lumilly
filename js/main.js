@@ -158,7 +158,8 @@ function show_item(data) {
 					// console.log(before_item_id);
 					// console.log(before_item.src.text);
 					// console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
-					if(parseInt(before_item.src.created_at.datetime_num, 10) <= parseInt(data.created_at.datetime_num, 10)) {
+					if(compareId(data.id_str, before_item.src.id_str)) {
+						// console.log(idParseInt(data.id_str, 10) + ":" + data.id_str);
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
 						return false;
@@ -175,6 +176,7 @@ function show_item(data) {
 			// console.log(insert_coord[i]);
 		});
 	}
+	// console.log(insert_coord);
 	// construct item
 	if(insert_coord.length > 0) {
 		$.each(insert_coord, function(i, coord) {
@@ -189,7 +191,7 @@ function show_item(data) {
 			// check item type
 			var $item_container = $item.find(".item_container");
 			if(mydata) {
-				if(data.entities.user_mentions.length !== 0) {
+				if(!(data.retweeted_status) && data.entities.user_mentions.length !== 0) {
 					for(var v in data.entities.user_mentions) {
 						if(data.entities.user_mentions[v].id_str == mydata.id_str) {
 							$item_container.addClass("reply");

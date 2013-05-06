@@ -32,3 +32,24 @@ function html_anescape(text) {
 		"&apos;" : "'"
 	});
 }
+
+
+// compare big integer over 52bit by string
+
+function compareId(a, b) {
+	aa = parseInt(a.slice(-9), 10);
+	ab = parseInt(a.slice(0, -9), 10);
+	ba = parseInt(b.slice(-9), 10);
+	bb = parseInt(b.slice(0, -9), 10);
+	if(ab > bb) {
+		return true;
+	} else if(ab == bb) {
+		if(aa >= ba) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+}

@@ -159,8 +159,8 @@ function rm_status(id, class_name) {
 function favorite_item (item) {
 	if(item.initialized) {
 		if(!(item.favorite())) {
+			add_status(item.id_src, "favorite");
 			item.favorite(true);
-			add_status(item.id, "favorite");
 		}
 	}
 }
@@ -173,8 +173,8 @@ function favorite_item (item) {
 function unfavorite_item (item) {
 	if(item.initialized) {
 		if(item.favorite()) {
+			rm_status(item.id_src, "favorite");
 			item.favorite(false);
-			rm_status(item.id, "favorite");
 		}
 	}
 }

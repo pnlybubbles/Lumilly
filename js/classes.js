@@ -126,8 +126,16 @@ Container.prototype = {
 		}
 	},
 	favorite: function(item, tf) {
-		item_index = item.coord;
-		this.favorited_list[item_index] = !(!(tf));
+		var item_index = 0;
+		while(1) {
+			item_index = this.id_src_list.indexOf(item.id_src, item_index);
+			if(item_index == -1) {
+				break;
+			}
+			console.log(item_index);
+			this.favorited_list[item_index] = !(!(tf));
+			item_index += 1;
+		}
 		return !(!(tf));
 	},
 	first: function() {
