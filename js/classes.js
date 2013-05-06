@@ -16,14 +16,14 @@ Container.prototype = {
 	initialize: function() {
 		this.init_obj = {
 			"id" : null,
+			"id_src" : null,
 			"coord" : null,
 			"favorited" : false,
 			"retweeted" : null,
-			"retweets" : [],//array
 			"src" : null,
 			"elm" : null
 		};
-		this.arrays = ["id_list", "favorited_list", "retweeted_list", "retweets_list", "source_list", "element_list", "yoffset_list"];
+		this.arrays = ["id_list", "id_src_list", "favorited_list", "retweeted_list", "source_list", "element_list"];
 		this.arrays.forEach(function(mthd, i) {
 			this[mthd] = [];
 		}, this);
@@ -35,20 +35,15 @@ Container.prototype = {
 			coord = id_list.length;
 		}
 		if(data.retweeted_status) {
-			this.id_list.splice(coord, 0, data.retweeted_status.id_str);
-			this.favorited_list.splice(coord, 0, data.retweeted_status.favorited);
-			this.retweeted_list.splice(coord, 0, data.retweeted_status.retweeted);
-			this.retweets_list.splice(coord, 0, [data]);//array
-			this.source_list.splice(coord, 0, data.retweeted_status);
+			this.id_src_list.splice(coord, 0, data.retweeted_status.id_str);
 		} else {
-			this.id_list.splice(coord, 0, data.id_str);
-			this.favorited_list.splice(coord, 0, data.favorited);
-			this.retweeted_list.splice(coord, 0, data.retweeted);
-			this.retweets_list.splice(coord, 0, []);//array
-			this.source_list.splice(coord, 0, data);
+			this.id_src_list.splice(coord, 0, data.id_str);
 		}
+		this.id_list.splice(coord, 0, data.id_str);
+		this.favorited_list.splice(coord, 0, data.favorited);
+		this.retweeted_list.splice(coord, 0, data.retweeted);
+		this.source_list.splice(coord, 0, data);
 		this.element_list.splice(coord, 0, elm);
-		this.yoffset_list.splice(coord, 0, elm.position().top);
 		// console.log(JSON.stringify(this.source_list.map(function(v) { return v.text; })));
 	},
 	remove: function(coord) {
@@ -69,10 +64,10 @@ Container.prototype = {
 		if(this.id_list[coord]) {
 			return {
 				"id" : this.id_list[coord],
+				"id_src" : this.id_src_list[coord],
 				"coord" : coord,
 				"favorited" : this.favorited_list[coord],
 				"retweeted" : this.retweeted_list[coord],
-				"retweets" : this.retweets_list[coord],
 				"src" : this.source_list[coord],
 				"elm" : this.element_list[coord]
 			};
@@ -129,21 +124,6 @@ Container.prototype = {
 		} else {
 			return undefined;
 		}
-	},
-	retweet: function(item, data) {
-		item_index = item.coord;
-		if(this.retweets_list[item_index].length !== 0) {
-			this.retweets_list[item_index].forEach(function(data_each, i) {
-				if(data_each.retweeted_status.id_str == data.retweeted_status.id_str) {
-					return undefined;
-				}
-			}, this);
-		}
-		if(!(this.retweets_list[item_index] instanceof Array)) {
-			this.retweets_list[item_index] = [];//array
-		}
-		this.retweets_list[item_index].push(data);
-		return this.retweets_list[item_index];
 	},
 	favorite: function(item, tf) {
 		item_index = item.coord;
@@ -264,9 +244,6 @@ Item.prototype = {
 	},
 	prev: function() {
 		return this.rel_coord(-1);
-	},
-	retweet: function(data) {
-		this.retweets = itemChunk[this.act].retweet(this, data);
 	},
 	favorite: function(tf) {
 		if(tf === undefined) {
@@ -389,16 +366,6 @@ Items.prototype = {
 	last: function() {
 		if(this.all_initialized()) {
 			return this.item[this.item.length - 1];
-		} else {
-			throw new Error("not initialized");
-		}
-	},
-	retweet: function(data) {
-		if(this.all_initialized()) {
-			$.each(this.item, function(i, item) {
-				item.retweet(data);
-			});
-			return this;
 		} else {
 			throw new Error("not initialized");
 		}

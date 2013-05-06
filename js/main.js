@@ -59,9 +59,8 @@ function load () {
 // show tweets on timeline
 //=========================
 
-var default_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
-var retweet_templete = '<div class="item %id%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
-var retweet_img_templete = '<div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div>';
+var default_templete = '<div class="item" _id_="%id%" id_src="%id_src%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
+var retweet_templete = '<div class="item" _id_="%id%" id_src="%id_src%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
 var auto_scrolling = false;
 var mini_view = true;
 
@@ -96,7 +95,8 @@ function makeup_display_html (base_data, html_templete) {
 		"%text%" : text,
 		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
-		"%id%" : data.id_str
+		"%id%" : base_data.id_str,
+		"%id_src%" : data.id_str
 	});
 	// check mini view to add mini class
 	if(mini_view) {
@@ -124,37 +124,20 @@ function show_item(data) {
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var item_html;
-	var id;
-	//console.log(data);
 	var tab_num = [];
 	var insert_coord = [];
-	// console.log("====");
-	// console.log(data);
+	var id = data.id_str;
+	var id_src;
+	// check retweet item
+	if(data.retweeted_status) {
+		item_html = makeup_display_html(data, retweet_templete);
+		id_src = data.retweeted_status.id_str;
+	} else {
+		item_html = makeup_display_html(data, default_templete);
+		id_src = id;
+	}
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
-			// check retweet item
-			if(data.retweeted_status) {
-				id = data.retweeted_status.id_str;
-				item = new Item({"id" : id}, i);
-				if(item.initialized) {
-					item.retweet(data);
-					if(Object.keys(item.retweets).length == 1) {
-						item_html = retweet_img_templete.replace_with({
-							"%profile_image_url%" : data.retweeted_status.user.profile_image_url.replace(/_normal/, ""),
-							"%retweet_profile_image_url%" : data.user.profile_image_url.replace(/_normal/, "")
-						});
-						$("." + id).find(".img_wrap").replaceWith(item_html);
-					}
-					if(mydata && data.user.id_str == mydata.id_str) {
-						add_status(id, "retweet");
-					}
-					return;
-				}
-				item_html = makeup_display_html(data, retweet_templete);
-			} else {
-				id = data.id_str;
-				item_html = makeup_display_html(data, default_templete);
-			}
 			// add to dom
 			// console.log(tab_name);
 			tab_num.push(tab.indexOf(tab_name));
@@ -167,14 +150,15 @@ function show_item(data) {
 			}
 			$($containers_children.get().reverse()).each(function(j) {
 				if (!(new Item({ "id" : id }, i).initialized)) {
-					var before_item_id = $(this).attr("class").match(/[0-9]+/)[0];
+					var before_item_id = $(this).attr("_id_");
 					// console.log($(this));
 					var before_item = new Item({"id" : before_item_id}, i);
 					// console.log(".");
-					// console.log(before_item.src);
+					// console.log($(this));
+					// console.log(before_item_id);
 					// console.log(before_item.src.text);
 					// console.log(parseInt(before_item.src.real_created_at.datetime_num, 10) + ":" + parseInt(data.real_created_at.datetime_num, 10));
-					if(parseInt(before_item.src.real_created_at.datetime_num, 10) <= parseInt(data.real_created_at.datetime_num, 10)) {
+					if(parseInt(before_item.src.created_at.datetime_num, 10) <= parseInt(data.created_at.datetime_num, 10)) {
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
 						return false;
@@ -197,7 +181,7 @@ function show_item(data) {
 			// add to item
 			var $item;
 			if (coord !== null) {
-				$item = $(".container." + tab[i]).find("." + id);
+				$item = $(".container." + tab[i]).find(".item[_id_='" + id + "']");
 				itemChunk[tab_num[i]].add(data, $item, coord);
 			} else {
 				return true;
@@ -219,7 +203,7 @@ function show_item(data) {
 			}
 			// check favorite
 			if(data.favorited) {
-				add_status(id, "favorite");
+				add_status(id_src, "favorite");
 			}
 			// auto scrolling to bottom
 			var remove_timeout = 0;

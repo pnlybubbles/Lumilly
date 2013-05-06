@@ -107,18 +107,20 @@ methods.toggle_textarea_focus = function() {
 
 methods.enter_to_post = function() {
 	text = $post_textarea.val();
-	var in_reply_to_id = null;
-	if(in_reply_to["screen_name"]) {
-		if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
-			in_reply_to_id = in_reply_to["id"];
+	if(text.length <= 140 && text.length !== 0) {
+		var in_reply_to_id = null;
+		if(in_reply_to["screen_name"]) {
+			if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
+				in_reply_to_id = in_reply_to["id"];
+			}
 		}
+		$post_textarea.val("");
+		tell("update", [text, in_reply_to_id]);
+		in_reply_to = {
+			"id" : null,
+			"screen_name" : null
+		};
 	}
-	$post_textarea.val("");
-	tell("update", [text, in_reply_to_id]);
-	in_reply_to = {
-		"id" : null,
-		"screen_name" : null
-	};
 };
 
 
@@ -137,13 +139,15 @@ var in_reply_to = {
 
 methods.create_reply = function() {
 	var items = new Items();
-	var reply_screen_names = [];
-	$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
-	$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
-	in_reply_to["screen_name"] = items.first().src.user.screen_name;
-	in_reply_to["id"] = items.first().src.id_str;
-	$post_textarea.focus();
-	post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
+	if(items.all_initialized()) {
+		var reply_screen_names = [];
+		$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
+		$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
+		in_reply_to["screen_name"] = items.first().src.user.screen_name;
+		in_reply_to["id"] = items.first().src.id_str;
+		$post_textarea.focus();
+		post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
+	}
 };
 
 
@@ -153,21 +157,23 @@ var unofficial_retweet_templete = " RT @%screen_name%: %text%";
 
 methods.unofficial_retweet = function() {
 	var items = new Items();
-	var reply_screen_name;
-	var reply_id;
-	var reply_text;
-	reply_screen_name = items.first().src.user.screen_name;
-	reply_id = items.first().src.id_str;
-	reply_text = items.first().src.text;
-	var unofficial_retweet_text = unofficial_retweet_templete.replace_with({
-		"%screen_name%" : reply_screen_name,
-		"%text%" : reply_text
-	});
-	$post_textarea.val($post_textarea.val() + html_anescape(unofficial_retweet_text));
-	in_reply_to["screen_name"] = reply_screen_name;
-	in_reply_to["id"] = reply_id;
-	$post_textarea.focus();
-	post_textarea.setSelectionRange(0, 0);
+	if(items.all_initialized()) {
+		var reply_screen_name;
+		var reply_id;
+		var reply_text;
+		reply_screen_name = items.first().src.user.screen_name;
+		reply_id = items.first().src.id_str;
+		reply_text = items.first().src.text;
+		var unofficial_retweet_text = unofficial_retweet_templete.replace_with({
+			"%screen_name%" : reply_screen_name,
+			"%text%" : reply_text
+		});
+		$post_textarea.val($post_textarea.val() + html_anescape(unofficial_retweet_text));
+		in_reply_to["screen_name"] = reply_screen_name;
+		in_reply_to["id"] = reply_id;
+		$post_textarea.focus();
+		post_textarea.setSelectionRange(0, 0);
+	}
 };
 
 

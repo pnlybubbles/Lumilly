@@ -142,13 +142,13 @@ function deselect_cursor(items) {
 // add status class_name to item id
 
 function add_status(id, class_name) {
-	$("." + id).addClass(class_name);
+	$(".item[id_src=" + id + "]").addClass(class_name);
 }
 
 // remove status class_name to item id
 
-function rm_status(di, class_name) {
-	$("." + id).removeClass(class_name);
+function rm_status(id, class_name) {
+	$(".item[id_src=" + id + "]").removeClass(class_name);
 }
 
 

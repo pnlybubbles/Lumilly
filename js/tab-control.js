@@ -24,7 +24,7 @@ function tab_setup () {
 	var $tab_list_box = $(".tab_list_box");
 	var $list_view = $(".list_view");
 	tab.forEach(function(value, i) {
-		$tab_list_box.append("<div class='ls " + value + "'>" + tab_label[i] + "</div>");
+		$tab_list_box.append("<div class='ls " + value + "'><div class='tab_label'>" + tab_label[i] + "</div></div>");
 		$tab_list_box.find(".ls").mousedown(function() {
 			toggle_tab(tab.indexOf($(this).attr("class").replace(/ls\s*/, "")));
 		});

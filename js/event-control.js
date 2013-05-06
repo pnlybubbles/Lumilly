@@ -142,7 +142,7 @@ function set_events () {
 // item onclick event
 
 function item_click (event, elm) {
-	var item = new Item({"id" : elm.attr("class").match(/[0-9]+/)[0]});
+	var item = new Item({"id" : elm.attr("_id_")});
 	if(event.shiftKey) {
 		expand_cursor(item);
 	} else if(event.metaKey) {
