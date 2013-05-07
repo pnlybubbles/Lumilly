@@ -137,6 +137,36 @@ function set_events () {
 		typing_event = false;
 		$post_textarea_count.text(""); // hide post_textarea_count
 	});
+	// load file on drop image
+	$.event.props.push('dataTransfer');
+	$("html").bind("drop", function(event) {
+		event.stopPropagation();
+		event.preventDefault();
+		var files = event.dataTransfer.files;
+		// Loop through the FileList and render image files as thumbnails.
+		$.each(files, function(i, f) {
+			// Only process image files.
+			if (!f.type.match('image.*')) {
+				return true;
+			}
+			var reader = new FileReader();
+			// Closure to capture the file information.
+			reader.onload = (function(theFile) {
+				return function(e) {
+					// Render thumbnail.
+					$attach_area.html(['<img class="thumb" src="', e.target.result,
+                            '" title="', escape(theFile.name), '"/>'].join(''));
+					media = {
+						"file_name" : theFile.name,
+						"baseurl" : e.target.result
+					};
+					console.log(media);
+				};
+			})(f);
+			// Read in the image file as a data URL.
+			reader.readAsDataURL(f);
+		});
+	}).bind("dragenter dragover", false);
 }
 
 // item onclick event

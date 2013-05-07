@@ -49,6 +49,7 @@ function load () {
 	container_margin = parseInt($container.css("margin-bottom"), 10);
 	$post_textarea = $(".post_textarea");
 	post_textarea = document.getElementsByClassName('post_textarea')[0];
+	$attach_area = $(".attach_area");
 	$post_textarea_count = $(".post_textarea_count");
 	set_events();
 	load_websocket();

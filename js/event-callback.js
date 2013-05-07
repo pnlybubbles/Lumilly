@@ -105,6 +105,13 @@ methods.toggle_textarea_focus = function() {
 
 // enter to post
 
+var media = {
+	"file_name" : null,
+	"baseurl" : null
+};
+
+// tell("image_set", [e.target.result, theFile.name]);
+
 methods.enter_to_post = function() {
 	text = $post_textarea.val();
 	if(text.length <= 140 && text.length !== 0) {
@@ -115,7 +122,16 @@ methods.enter_to_post = function() {
 			}
 		}
 		$post_textarea.val("");
-		tell("update", [text, in_reply_to_id]);
+		if(media.file_name) {
+			tell("update_with_media", [text, media.file_name, media.baseurl, in_reply_to_id]);
+			media = {
+				"file_name" : null,
+				"baseurl" : null
+			};
+			$attach_area.empty();
+		} else {
+			tell("update", [text, in_reply_to_id]);
+		}
 		in_reply_to = {
 			"id" : null,
 			"screen_name" : null

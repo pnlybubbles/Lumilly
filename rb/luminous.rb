@@ -9,7 +9,7 @@ require 'json'
 require 'openssl'
 require 'date'
 require 'daemons'
-# require 'twitter'
+require 'twitter'
 require_relative '../../key_token.rb'
 
 require 'pp'
@@ -31,16 +31,6 @@ module App
 			ACCESS_TOKEN,
 			ACCESS_TOKEN_SECRET
 			)
-
-			# Twitter.configure do |config|
-			#     config.consumer_key = CONSUMER_KEY
-			#     config.consumer_secret = CONSUMER_SECRET
-			# end
-
-			# @twitter = Twitter::Client.new(
-			#     :oauth_token => ACCESS_TOKEN,
-			#     :oauth_token_secret => ACCESS_TOKEN_SECRET
-			# )
 		end
 
 		def connect(&block)
@@ -52,11 +42,11 @@ module App
 			https.verify_mode = OpenSSL::SSL::VERIFY_NONE
 			# https.verify_depth = 5
 			
-			https.start do |https|
+			https.start do |session|
 				request = Net::HTTP::Get.new(uri.request_uri)
-				request.oauth!(https, @consumer, @access_token)
+				request.oauth!(session, @consumer, @access_token)
 				buf = ""
-				https.request(request) do |response|
+				session.request(request) do |response|
 					response.read_body do |chunk|
 						buf << chunk
 						while(line = buf[/.*(\r\n)+/m])
@@ -74,22 +64,6 @@ module App
 			end
 		end
 
-		def favorite(id)
-			@access_token.post("/favorites/create.json", 'id' => id.to_s)
-		end
-		
-		def unfavorite(id)
-			@access_token.post("/favorites/destroy.json", 'id' => id.to_s)
-		end
-
-		def retweet(id)
-			@access_token.post("/statuses/retweet/#{id}.json")
-		end
-
-		def destroy(id)
-			@access_token.post("/statuses/destroy/#{id}.json")
-		end
-
 		def verify_credentials
 			return JSON.parse(@access_token.get("/account/verify_credentials.json").body)
 		end
@@ -100,17 +74,6 @@ module App
 
 		def mentions_timeline(count)
 			return JSON.parse(@access_token.get("/statuses/mentions_timeline.json?count=#{count}").body)
-		end
-
-		def update(text, *id)
-			if(id.empty? && id[0])
-				@access_token.post('/statuses/update.json', 
-				'status' => text)
-			else
-				@access_token.post('/statuses/update.json', 
-				'status' => text, 
-				'in_reply_to_status_id' => id[0])
-			end
 		end
 	end
 
@@ -307,22 +270,32 @@ module App
 	class Receiver
 		def initialize
 			@twitter_api = App::TwitterAPI.new
+
+			Twitter.configure do |config|
+			    config.consumer_key = CONSUMER_KEY
+			    config.consumer_secret = CONSUMER_SECRET
+			end
+
+			@api = Twitter::Client.new(
+			    :oauth_token => ACCESS_TOKEN,
+			    :oauth_token_secret => ACCESS_TOKEN_SECRET
+			)
 		end
 
 		def favorite(argu)
-			@twitter_api.favorite(argu[0])
+			@api.favorite(argu[0])
 		end
 
 		def unfavorite(argu)
-			@twitter_api.unfavorite(argu[0])
+			@api.unfavorite(argu[0])
 		end
 
 		def retweet(argu)
-			@twitter_api.retweet(argu[0])
+			@api.retweet(argu[0])
 		end
 
 		def destroy(argu)
-			@twitter_api.destroy(argu[0])
+			@api.status_destroy(argu[0])
 		end
 
 		def verify_credentials(argu)
@@ -339,7 +312,22 @@ module App
 		end
 
 		def update(argu)
-			@twitter_api.update(argu[0], argu[1]);
+			if argu[1]
+				@api.update(argu[0], {:in_reply_to_status_id => argu[1]})
+			else
+				@api.update(argu[0])
+			end
+		end
+
+		def update_with_media(argu)
+			img_base64 = argu[2].match(/base64,(?<base>.*)$/)[:base]
+			file_name = "img" + argu[1][/\.[^\.]+$/]
+			File.binwrite(file_name, img_base64.unpack('m')[0])
+			if argu[3]
+				@api.update_with_media(argu[0], File.new(file_name), {:in_reply_to_status_id => argu[3]})
+			else
+				@api.update_with_media(argu[0], File.new(file_name))
+			end
 		end
 
 		def copy(argu)
@@ -349,29 +337,13 @@ module App
 		def home_timeline(argu)
 			from = argu[0]
 			num = argu[1]
-			# if $res_home.length < num
-			# 	func, data = home_timeline_refresh([200], func)
-			# 	$res_home = data + $res_home
-			# end
 			return $res_home[from, num]
-		end
-
-		def home_timeline_refresh(argu)
-			return @twitter_api.home_timeline(argu[0])
 		end
 
 		def mention_timeline(argu)
 			from = argu[0]
 			num = argu[1]
-			# if $res_mention.length < num
-			# 	func, data = mention_timeline_refresh([200], func)
-			# 	$res_mention = data + $res_mention
-			# end
 			return $res_mention[from, num]
-		end
-
-		def mention_timeline_refresh(argu)
-			return @twitter_api.mentions_timeline(argu[0])
 		end
 
 		def filter_timeline(argu)

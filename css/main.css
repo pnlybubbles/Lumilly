@@ -329,7 +329,11 @@ body {
 }
 
 .mini br {
-	display: none;
+	content: "";
+}
+
+.mini br::after {
+	content: " ";
 }
 
 .mini .created_at {
@@ -397,19 +401,51 @@ body {
 	padding: 5px 40px 5px 5px;
 	background-color: rgb(255, 255, 255);
 	border-top: 1px solid rgb(50, 50, 50);
+	display: -webkit-box;
+	display:    -moz-box;
+	display:         box;
+	-webkit-box-orient: horizontal;
+	   -moz-box-orient: horizontal;
+	        box-orient: horizontal;
 	-webkit-box-sizing: border-box;
 	   -moz-box-sizing: border-box;
 	        box-sizing: border-box;
+	-webkit-box-pack: center;
+	   -moz-box-pack: center;
+	        box-pack: center;
+	-webkit-box-align: center;
+	   -moz-box-align: center;
+	        box-align: center;
+}
+
+.attach_area {
+	height: 100%;
+}
+
+.thumb {
+	margin: 2px 5px 2px 2px;
+	height: 40px;
+	width: 40px;
+	-webkit-box-ordinal-group: 1;
+	   -moz-box-ordinal-group: 1;
+	        box-ordinal-group: 1;
 }
 
 .post_textarea {
-	width: 100%;
+	display: block;
+	margin: 0;
 	height: 100%;
 	border: none;
 	resize: none;
 	outline: none;
 	font-size: 13px;
 	overflow: hidden;
+	-webkit-box-ordinal-group: 2;
+	   -moz-box-ordinal-group: 2;
+	        box-ordinal-group: 2;
+	-webkit-box-flex: 1;
+	   -moz-box-flex: 1;
+	        box-flex: 1;
 }
 
 .post_textarea_count {
