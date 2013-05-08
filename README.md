@@ -1,6 +1,6 @@
 #概要
 
-*Luminous（ルミナス）*
+*Lumilly（ルミリィ）*
 
 Twitterクライアント
 
