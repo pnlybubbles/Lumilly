@@ -94,7 +94,7 @@ function makeup_display_html (base_data, html_templete) {
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
 		"%id%" : base_data.id_str,
 		"%id_src%" : data.id_str,
-		"%via%" : data.source
+		"%via%" : data.source.replace('rel="nofollow"', "target='_blank'>")
 	});
 	// check mini view to add mini class
 	if(mini_view) {
