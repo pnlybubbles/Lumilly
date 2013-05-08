@@ -19,15 +19,13 @@ requirejs.config({
         'item-control' : 'js/item-control',
         'tab-control' : 'js/tab-control',
         'event-control' : 'js/event-control',
-        'event-callback' : 'js/event-callback'
-    },
-    shim: {
-        // 'jquery.fooPlugin' : ['jquery'],
+        'event-callback' : 'js/event-callback',
+        'html_templete' : 'js/html_templete'
     },
     urlArgs: "bust=" +  (new Date()).getTime()
 });
 
-require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap.min', 'CSSPlugin.min', 'classes', 'others', 'exchanger', 'item-control', 'tab-control', 'event-control', 'event-callback'], function(){
+require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap.min', 'CSSPlugin.min', 'classes', 'others', 'exchanger', 'item-control', 'tab-control', 'event-control', 'event-callback', 'html_templete'], function(){
 	load();
 });
 
@@ -60,8 +58,6 @@ function load () {
 // show tweets on timeline
 //=========================
 
-var default_templete = '<div class="item" _id_="%id%" id_src="%id_src%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
-var retweet_templete = '<div class="item" _id_="%id%" id_src="%id_src%"><div class="item_container %mini_view%"><div class="left_item"><div class="img_wrap"><div class="profile_image" style="background-image: url(\'%profile_image_url%\')"><div class="retweet_img_wrap"><div class="retweet_profile_image" style="background-image: url(\'%retweet_profile_image_url%\')"></div></div></div></div><div class="text_wrap"><div class="user_name"><span class="screen_name">%screen_name%</span><span class="name">%name%</span></div><div class="text">%text%</div><div class="statuses"><div class="status favorite_symbol">FAV</div><div class="status retweet_symbol">RT</div></div></div></div><div class="created_at">%created_at%</div></div><div class="buttons_container"><div class="buttons_wrap"><div class="favorite_button action_button">Fav</div><div class="retweet_button action_button">RT</div><div class="reply_button action_button">Reply</div></div></div></div>';
 var auto_scrolling = false;
 var mini_view = true;
 
@@ -97,7 +93,8 @@ function makeup_display_html (base_data, html_templete) {
 		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
 		"%id%" : base_data.id_str,
-		"%id_src%" : data.id_str
+		"%id_src%" : data.id_str,
+		"%via%" : data.source
 	});
 	// check mini view to add mini class
 	if(mini_view) {
@@ -110,11 +107,16 @@ function makeup_display_html (base_data, html_templete) {
 		});
 	}
 	// replace retweet source profile image if retweet
+	var retweeted_status_style = "";
+	var aditional_class = "";
 	if(base_data.retweeted_status) {
-		item_html = item_html.replace_with({
-			"%retweet_profile_image_url%" : base_data.user.profile_image_url.replace(/_normal/, "")
-		});
+		retweeted_status_style = "background-image: url('" + base_data.user.profile_image_url.replace(/_normal/, "") + "')";
+		aditional_class = " retweeted_status";
 	}
+	item_html = item_html.replace_with({
+		"%retweeted_status_style%" : retweeted_status_style,
+		"%aditional_class%" : aditional_class
+	});
 	return item_html;
 }
 
@@ -124,17 +126,15 @@ var list_item_limit = 500;
 function show_item(data) {
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
-	var item_html;
 	var tab_num = [];
 	var insert_coord = [];
 	var id = data.id_str;
 	var id_src;
+	var item_html = makeup_display_html(data, default_templete);
 	// check retweet item
 	if(data.retweeted_status) {
-		item_html = makeup_display_html(data, retweet_templete);
 		id_src = data.retweeted_status.id_str;
 	} else {
-		item_html = makeup_display_html(data, default_templete);
 		id_src = id;
 	}
 	if(data.tab.length !== 0) {

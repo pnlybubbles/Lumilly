@@ -98,6 +98,11 @@ body {
 }
 
 .retweet_img_wrap {
+	display: none;
+}
+
+.retweeted_status .retweet_img_wrap {
+	display: block;
 	position: absolute;
 	bottom: 0;
 	right: 0;
@@ -107,6 +112,11 @@ body {
 }
 
 .retweet_profile_image {
+	display: none;
+}
+
+.retweeted_status .retweet_profile_image {
+	display: block;
 	width: 20px;
 	height: 20px;
 	background-color: rgb(255, 255, 255);
@@ -115,7 +125,7 @@ body {
 
 .text_wrap {
 	/*margin-left: 70px;*/
-	/*margin-bottom: 10px;*/
+	margin-bottom: 12px;
 	width: auto;
 	margin-left: 10px;
 	-webkit-box-ordinal-group: 2;
@@ -155,6 +165,19 @@ body {
 	top: 12px;
 	font-size: 10px;
 	color: rgb(163, 163, 163);
+}
+
+.via {
+	position: absolute;
+	right: 12px;
+	bottom: 8px;
+	font-size: 10px;
+	color: rgb(163, 163, 163);
+}
+
+.via a {
+	color: rgb(163, 163, 163);
+	text-decoration: none;
 }
 
 /* buttons */
@@ -258,6 +281,10 @@ body {
 	color: rgb(194, 220, 242);
 }
 
+.selected .via a {
+	color: rgb(194, 220, 242);
+	text-decoration: underline;
+}
 
 /* mini view */
 
@@ -285,6 +312,7 @@ body {
 
 .mini .text_wrap {
 	margin-top: 4px;
+	margin-bottom: 0;
 	overflow: hidden;
 	display: -webkit-box;
 	display:    -moz-box;
@@ -337,6 +365,10 @@ body {
 }
 
 .mini .created_at {
+	display: none;
+}
+
+.mini .via {
 	display: none;
 }
 

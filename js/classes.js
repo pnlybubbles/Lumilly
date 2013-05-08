@@ -132,7 +132,6 @@ Container.prototype = {
 			if(item_index == -1) {
 				break;
 			}
-			console.log(item_index);
 			this.favorited_list[item_index] = !(!(tf));
 			item_index += 1;
 		}
