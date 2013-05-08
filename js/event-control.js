@@ -154,8 +154,14 @@ function set_events () {
 			reader.onload = (function(theFile) {
 				return function(e) {
 					// Render thumbnail.
-					$attach_area.html(['<img class="thumb" src="', e.target.result,
-                            '" title="', escape(theFile.name), '"/>'].join(''));
+					$attach_area.html(['<div class="thumb_wrap"><img class="thumb" src="', e.target.result,
+                            '" title="', escape(theFile.name), '"/><div class="clear_button"><span>Clear</span></div></div>'].join(''));
+					$attach_area.find(".thumb_wrap").fadeIn(200);
+					$attach_area.find(".clear_button").click(function() {
+						$(this).parent().fadeOut(250, function() {
+							$attach_area.empty();
+						});
+					});
 					media = {
 						"file_name" : theFile.name,
 						"baseurl" : e.target.result

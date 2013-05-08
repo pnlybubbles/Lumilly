@@ -454,13 +454,45 @@ body {
 	height: 100%;
 }
 
-.thumb {
-	margin: 2px 5px 2px 2px;
-	height: 40px;
-	width: 40px;
+.thumb_wrap {
+	display: none;
+	margin: 2px 5px 2px 3px;
+	position: relative;
 	-webkit-box-ordinal-group: 1;
 	   -moz-box-ordinal-group: 1;
 	        box-ordinal-group: 1;
+}
+
+.thumb {
+	height: 40px;
+	width: 40px;
+}
+
+.clear_button {
+	opacity: 0;
+	position: absolute;
+	height: 40px;
+	width: 40px;
+	top: 0;
+	left: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	-webkit-transition: all .2s;
+	   -moz-transition: all .2s;
+	    -ms-transition: all .2s;
+	     -o-transition: all .2s;
+	        transition: all .2s;
+}
+
+.clear_button span {
+	position: absolute;
+	color: rgb(255, 255, 255);
+	font-size: 12px;
+	bottom: 3px;
+	left: 4px;
+}
+
+.clear_button:hover {
+	opacity: 1;
 }
 
 .post_textarea {
