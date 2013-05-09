@@ -120,6 +120,24 @@ function makeup_display_html (base_data, html_templete) {
 	return item_html;
 }
 
+function is_reply(data) {
+	if(mydata) {
+		var user_mentions;
+		if(!(data.retweeted_status) && data.entities.user_mentions.length !== 0) {
+			user_mentions = data.entities.user_mentions;
+		} else if(data.retweeted_status && data.retweeted_status.entities.user_mentions.length !== 0) {
+			user_mentions = data.retweeted_status.entities.user_mentions;
+		} else {
+			return false;
+		}
+		for(var i in user_mentions) {
+			if(user_mentions[i].id_str == mydata.id_str) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
 
 var list_item_limit = 500;
 
@@ -180,15 +198,10 @@ function show_item(data) {
 			// check item type
 			var $item_container = $item.find(".item_container");
 			if(mydata) {
-				if(!(data.retweeted_status) && data.entities.user_mentions.length !== 0) {
-					for(var v in data.entities.user_mentions) {
-						if(data.entities.user_mentions[v].id_str == mydata.id_str) {
-							$item_container.addClass("reply");
-							break;
-						}
-					}
+				if(is_reply(data)) {
+					$item_container.addClass("reply");
 				}
-				if(data.user.id_str == mydata.id_str) {
+				if(data.user.id_str == mydata.id_str || (data.retweeted_status && data.retweeted_status.user.id_str == mydata.id_str)) {
 					$item_container.addClass("mine");
 				}
 			}
