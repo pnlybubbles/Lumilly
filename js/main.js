@@ -97,25 +97,19 @@ function makeup_display_html (base_data, html_templete) {
 		"%via%" : data.source.replace('rel="nofollow"', "target='_blank'")
 	});
 	// check mini view to add mini class
+	var aditional_class = [];
 	if(mini_view) {
-		item_html = item_html.replace_with({
-			"%mini_view%" : "mini"
-		});
-	} else {
-		item_html = item_html.replace_with({
-			"%mini_view%" : ""
-		});
+		aditional_class.push("mini");
 	}
 	// replace retweet source profile image if retweet
 	var retweeted_status_style = "";
-	var aditional_class = "";
 	if(base_data.retweeted_status) {
 		retweeted_status_style = "background-image: url('" + base_data.user.profile_image_url.replace(/_normal/, "") + "')";
-		aditional_class = " retweeted_status";
+		aditional_class.push("retweeted_status");
 	}
 	item_html = item_html.replace_with({
 		"%retweeted_status_style%" : retweeted_status_style,
-		"%aditional_class%" : aditional_class
+		"%aditional_class%" : aditional_class.join(" ")
 	});
 	return item_html;
 }
@@ -199,10 +193,10 @@ function show_item(data) {
 			var $item_container = $item.find(".item_container");
 			if(mydata) {
 				if(is_reply(data)) {
-					$item_container.addClass("reply");
+					$item.addClass("reply");
 				}
 				if(data.user.id_str == mydata.id_str || (data.retweeted_status && data.retweeted_status.user.id_str == mydata.id_str)) {
-					$item_container.addClass("mine");
+					$item.addClass("mine");
 				}
 			}
 			// check favorite

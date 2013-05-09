@@ -245,18 +245,18 @@ body {
 
 /* highlight */
 
-.mine {
+.mine .item_container {
 	background-color: rgb(229, 240, 249);
 }
 
-.reply {
+.reply .item_container {
 	background-color: rgb(255, 236, 237);
 }
 
 
 /* selected */
 
-.selected {
+.selected .item_container {
 	background-color: rgb(95, 164, 224);
 }
 
@@ -288,7 +288,7 @@ body {
 
 /* mini view */
 
-.mini {
+.mini .item_container {
 	padding: 2px 12px;
 }
 

@@ -110,11 +110,10 @@ function select_cursor(items) {
 	if(items instanceof Item) { items = new Items(items); }
 	items.select();
 	$.each(items.item, function(i, item) {
-		var $item_container = item.elm.find(".item_container");
-		$item_container.addClass("selected");
+		item.elm.addClass("selected");
 		var selected_items = new Items();
 		if(mini_view && selected_items.all_initialized() && selected_items.item.length < 2) {
-			$item_container.removeClass("mini");
+			item.elm.removeClass("mini");
 		}
 	});
 }
@@ -126,10 +125,9 @@ function deselect_cursor(items) {
 	if(items instanceof Item) { items = new Items(items); }
 	items.deselect();
 	$.each(items.item, function(i, item) {
-		var $item_container = item.elm.find(".item_container");
-		$item_container.removeClass("selected");
+		item.elm.removeClass("selected");
 		if(mini_view) {
-			$item_container.addClass("mini");
+			item.elm.addClass("mini");
 		}
 	});
 }
