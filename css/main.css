@@ -281,6 +281,10 @@ body {
 	color: rgb(194, 220, 242);
 }
 
+.selected .via {
+	color: rgb(194, 220, 242);
+}
+
 .selected .via a {
 	color: rgb(194, 220, 242);
 	text-decoration: underline;
