@@ -331,6 +331,7 @@ module App
 			else
 				@api.update_with_media(argu[0], File.new(file_name))
 			end
+			File.delete(file_name)
 		end
 
 		def copy(argu)
