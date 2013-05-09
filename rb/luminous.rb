@@ -111,17 +111,20 @@ module App
 					p [:open]
 
 					Thread.new(ws) { |ws_t|
-						begin
-							@twitter_api.connect { |res|
-								# p res
-								mthd, argu = @controller.respose(res)
-								command = {:method => mthd, :argu => argu}
-								msg = {:server => command}
-								ws_t.send(JSON.generate(msg).to_s)
-							}
-						rescue Exception => e
-							puts "#### ERROR: #{e} ####"
-						end
+						loop {
+							begin
+								@twitter_api.connect { |res|
+									# p res
+									mthd, argu = @controller.respose(res)
+									command = {:method => mthd, :argu => argu}
+									msg = {:server => command}
+									ws_t.send(JSON.generate(msg).to_s)
+								}
+							rescue Exception => e
+								exit 1 if e.to_s == ""
+								puts "#### ERROR: #{e} ####"
+							end
+						}
 					}
 				end
 
