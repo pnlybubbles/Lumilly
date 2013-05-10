@@ -16,6 +16,7 @@ var default_templete = '\
 					<span class="name">%name%</span>\
 				</div>\
 				<div class="text">%text%</div>\
+				<div class="retweeted_by">%retweeted_by%</div>\
 				<div class="statuses">\
 					<div class="status favorite_symbol">FAV</div>\
 					<div class="status retweet_symbol">RT</div>\

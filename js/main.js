@@ -101,12 +101,15 @@ function makeup_display_html (base_data, html_templete) {
 	}
 	// replace retweet source profile image if retweet
 	var retweeted_status_style = "";
+	var retweeted_by = "";
 	if(base_data.retweeted_status) {
 		retweeted_status_style = "background-image: url('" + base_data.user.profile_image_url.replace(/_normal/, "") + "')";
+		retweeted_by = "RT: " + base_data.user.screen_name;
 		aditional_class.push("retweeted_status");
 	}
 	item_html = item_html.replace_with({
 		"%retweeted_status_style%" : retweeted_status_style,
+		"%retweeted_by%" : retweeted_by,
 		"%aditional_class%" : aditional_class.join(" ")
 	});
 	return item_html;
