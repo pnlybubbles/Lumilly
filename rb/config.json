@@ -1,0 +1,18 @@
+{
+    "general": {
+        "mini_view": true, 
+        "timeline_item_limit": 500
+    }, 
+    "tab": [
+        {
+            "bundle": "awaawa", 
+            "label": "あわあわ", 
+            "regexp": "(あ|ぁ|ア|ァ|ｱ).*(わ|ゎ|ワ|ヮ|ﾜ).*(あ|ぁ|ア|ァ|ｱ).*(わ|ゎ|ワ|ヮ|ﾜ)|(あ|ぁ|ア|ァ|ｱ)(わ|ゎ|ワ|ヮ|ﾜ)[^わ]"
+        }, 
+        {
+            "bundle": "yuruyuri", 
+            "label": "ゆるゆり", 
+            "regexp": "#yuruyuri|ゆるゆり"
+        }
+    ]
+}
