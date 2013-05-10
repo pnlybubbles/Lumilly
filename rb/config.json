@@ -3,6 +3,97 @@
         "mini_view": true, 
         "timeline_item_limit": 500
     }, 
+    "key": {
+        "13": {
+            "create_reply": [
+                "tl"
+            ], 
+            "enter_to_post": [
+                "type"
+            ], 
+            "type_newline": [
+                "type", 
+                "ctrl", 
+                "noprevent"
+            ]
+        }, 
+        "32": {
+            "toggle_buttons_opened": [
+                "tl"
+            ]
+        }, 
+        "35": {
+            "cursor_to_end": [
+                "tl"
+            ]
+        }, 
+        "38": {
+            "go_prev": [
+                "tl"
+            ]
+        }, 
+        "40": {
+            "cursor_to_end": [
+                "tl", 
+                "meta"
+            ], 
+            "go_next": [
+                "tl"
+            ]
+        }, 
+        "67": {
+            "copy_tweet": [
+                "tl", 
+                "meta"
+            ]
+        }, 
+        "70": {
+            "toggle_favorite": [
+                "tl"
+            ]
+        }, 
+        "78": {
+            "create_new_tweet": [
+                "both", 
+                "meta"
+            ]
+        }, 
+        "81": {
+            "unofficial_retweet": [
+                "tl", 
+                "ctrl"
+            ]
+        }, 
+        "82": {
+            "toggle_retweet": [
+                "tl", 
+                "alt"
+            ]
+        }, 
+        "83": {
+            "toggle_favorite": [
+                "tl", 
+                "ctrl"
+            ]
+        }, 
+        "86": {
+            "toggle_retweet": [
+                "tl", 
+                "shift", 
+                "meta"
+            ], 
+            "unofficial_retweet": [
+                "tl", 
+                "alt", 
+                "meta"
+            ]
+        }, 
+        "9": {
+            "toggle_textarea_focus": [
+                "both"
+            ]
+        }
+    }, 
     "tab": [
         {
             "bundle": "awaawa", 

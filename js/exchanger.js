@@ -57,7 +57,7 @@ function send (method, argu) {
 				console.log("callback id: " + method);
 				console.log("callback queue: " + callback_queue.func[callback_queue.id.indexOf(method)]);
 				send(method, argu);
-			}, 1000);
+			}, 100);
 			return;
 		} else {
 			method = callback_queue.func[0];
@@ -67,9 +67,9 @@ function send (method, argu) {
 	// if not callback method and not standby, send in queue
 	if(!(callback_method) && callback_queue.id.length > 0) {
 		setTimeout(function() {
-			// console.log("not standby: " + method);
+			console.log("not standby: " + method);
 			send(method, argu);
-		}, 100000);
+		}, 100);
 		return;
 	}
 	// send method

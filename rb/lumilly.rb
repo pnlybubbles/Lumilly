@@ -178,6 +178,7 @@ module App
 					'mini_view' => true,
 					'timeline_item_limit' => 500
 				},
+				'key' => {},
 				'tab' => []
 			}
 

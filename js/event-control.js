@@ -14,49 +14,11 @@ function set_events () {
 	$(window).keydown(function(event) {
 		var key = event.keyCode;
 		var with_state = [];
-		var method = {"null" : []};
+		var method;
 		// get method which assign to keys
-		switch(key) {
-			case 38: //up
-			method = {"go_prev" : ["tl"]};
-			break;
-			case 40: //down
-			method = {"go_next" : ["tl"], "cursor_to_end" : ["tl", "meta"]};
-			break;
-			case 70: //f
-			method = {"toggle_favorite" : ["tl"]};
-			break;
-			case 83: //s
-			method = {"toggle_favorite" : ["tl", "ctrl"]};
-			break;
-			case 86: //v
-			method = {"toggle_retweet" : ["tl", "shift", "meta"], "unofficial_retweet" : ["tl", "alt", "meta"]};
-			break;
-			case 82: //r
-			method = {"toggle_retweet" : ["tl", "alt"]};
-			break;
-			case 81: //q
-			method = {"unofficial_retweet" : ["tl", "ctrl"]};
-			break;
-			case 9: //tab
-			method = {"toggle_textarea_focus" : ["both"]};
-			break;
-			case 13: //enter
-			method = {"enter_to_post" : ["type"], "type_newline" : ["type", "ctrl", "noprevent"], "create_reply" : ["tl"]};
-			break;
-			case 67: //c
-			method = {"copy_tweet" : ["tl", "meta"]};
-			break;
-			case 78: //n
-			method = {"create_new_tweet" : ["both", "meta"]};
-			break;
-			case 35: //end
-			method = {"cursor_to_end" : ["tl"]};
-			break;
-			case 32: //space
-			method = {"toggle_buttons_opened" : ["tl"]};
-			break;
-			default:
+		method = config.key[key];
+		if(method === undefined) {
+			method = {"null" : []};
 		}
 		// console.log(method);
 		// get decoration keys
