@@ -16,11 +16,17 @@ var tab_label = ["Timeline", "Mention"];
 var $containers = [];
 var tab_scroll_top = [];
 var tab_is_bottom = [];
+var container_margin;
 
 
 // setup tab ** beta **
 
 function tab_setup () {
+	tab = ["timeline", "mention"];
+	tab_label = ["Timeline", "Mention"];
+	tab = tab.concat(config.tab.map(function(v) { return v.bundle; }));
+	tab_label = tab_label.concat(config.tab.map(function(v) { return v.label; }));
+	console.log(tab);
 	var $tab_list_box = $(".tab_list_box");
 	var $list_view = $(".list_view");
 	tab.forEach(function(value, i) {
@@ -36,6 +42,7 @@ function tab_setup () {
 	});
 	$container = $(".container." + tab[act]);
 	$container.addClass("active");
+	container_margin = parseInt($container.css("margin-bottom"), 10);
 }
 
 

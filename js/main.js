@@ -36,15 +36,12 @@ require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap
 
 var $container;
 var $body;
-var container_margin;
 var $post_textarea;
 var post_textarea;
 var methods = {};
 
 function load () {
 	$body = $("body");
-	tab_setup();
-	container_margin = parseInt($container.css("margin-bottom"), 10);
 	$post_textarea = $(".post_textarea");
 	post_textarea = document.getElementsByClassName('post_textarea')[0];
 	$attach_area = $(".attach_area");
@@ -90,6 +87,7 @@ function makeup_display_html (base_data, html_templete) {
 		"%screen_name%" : data.user.screen_name,
 		"%name%" : data.user.name,
 		"%text%" : text,
+		// "%created_at%" : data.created_at.mon + "/" + data.created_at.mday + " " + data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
 		"%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
 		"%profile_image_url%" : data.user.profile_image_url.replace(/_normal/, ""),
 		"%id%" : base_data.id_str,
@@ -114,7 +112,7 @@ function makeup_display_html (base_data, html_templete) {
 	return item_html;
 }
 
-function is_reply(data) {
+function is_reply (data) {
 	if(mydata) {
 		var user_mentions;
 		if(!(data.retweeted_status) && data.entities.user_mentions.length !== 0) {
@@ -135,7 +133,7 @@ function is_reply(data) {
 
 var list_item_limit = 500;
 
-function show_item(data) {
+function show_item (data) {
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var tab_num = [];
@@ -149,25 +147,30 @@ function show_item(data) {
 	} else {
 		id_src = id;
 	}
+	// console.log(data.tab);
 	if(data.tab.length !== 0) {
 		data.tab.forEach(function(tab_name, i) {
 			// add to dom
 			tab_num.push(tab.indexOf(tab_name));
 			var $containers_children = $containers[tab_num[i]].children();
 			insert_coord[i] = $containers_children.length;
+			// console.log(tab_num[i] + ":");
 			if(insert_coord[i] === 0) {
+				// console.log(tab_num[i]);
 				$containers[tab_num[i]].prepend(item_html);
 			}
 			$($containers_children.get().reverse()).each(function(j) {
-				if (!(new Item({ "id" : id }, i).initialized)) {
+				if (!(new Item({ "id" : id }, tab_num[i]).initialized)) {
 					var before_item_id = $(this).attr("_id_");
-					var before_item = new Item({"id" : before_item_id}, i);
+					var before_item = new Item({"id" : before_item_id}, tab_num[i]);
 					if(compareId(data.id_str, before_item.src.id_str)) {
+						// console.log(tab_num[i]);
 						insert_coord[i] = insert_coord[i] - j;
 						$($containers_children[insert_coord[i] - 1]).after(item_html);
 						return false;
 					}
 					if(j == insert_coord[i] - 1) {
+						// console.log(tab_num[i]);
 						$containers[tab_num[i]].prepend(item_html);
 						insert_coord[i] = 0;
 						return false;
@@ -184,7 +187,7 @@ function show_item(data) {
 			// add to item
 			var $item;
 			if (coord !== null) {
-				$item = $(".container." + tab[i]).find(".item[_id_='" + id + "']");
+				$item = $(".container." + tab[tab_num[i]]).find(".item[_id_='" + id + "']");
 				itemChunk[tab_num[i]].add(data, $item, coord);
 			} else {
 				return true;

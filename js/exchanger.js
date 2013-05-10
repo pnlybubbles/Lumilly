@@ -19,6 +19,7 @@ function load_websocket () {
 
 function on_open () {
 	console.log("socket opened");
+	tell("configure", null, "set_config");
 	tell("verify_credentials", null, "set_my_data");
 	tell("home_timeline", [0, 200], "fill_timeline");
 	tell("mention_timeline", [0, 50], "fill_timeline");
@@ -63,6 +64,15 @@ function send (method, argu) {
 			callback_method = true;
 		}
 	}
+	// if not callback method and not standby, send in queue
+	if(!(callback_method) && callback_queue.id.length > 0) {
+		setTimeout(function() {
+			// console.log("not standby: " + method);
+			send(method, argu);
+		}, 100000);
+		return;
+	}
+	// send method
 	// console.log(method + ":start");
 	if(methods[method] === undefined) {
 		method_missing(method, argu);
@@ -73,6 +83,7 @@ function send (method, argu) {
 			methods[method](argu);
 		}
 	}
+	// remove queue
 	// console.log(method + ":end");
 	if(callback_method) {
 		callback_queue.id.shift();

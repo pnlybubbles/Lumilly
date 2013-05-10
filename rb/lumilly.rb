@@ -16,6 +16,7 @@ require 'pp'
 
 $res_home = []
 $res_mention = []
+$res_tab = {}
 
 module App
 	class TwitterAPI
@@ -83,12 +84,19 @@ module App
 			@receiver = App::Receiver.new
 			@twitter_api = App::TwitterAPI.new
 			@constructor = App::Constructor.new
+			@config = App::Config.new
+			@config.load
 		end
 
 		def initialize_data
 			$my_data = @twitter_api.verify_credentials
-			$res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
-			$res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
+			# $res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
+			@twitter_api.home_timeline(200).each { |res| @constructor.text(res) }
+			# $res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
+			@twitter_api.mentions_timeline(200).each { |res| @constructor.text(res) }
+			$res_home.sort!{ |a, b| b["id"] <=> a["id"] }
+			$res_mention.sort!{ |a, b| b["id"] <=> a["id"] }
+			# p $res_tab
 		end
 
 		def server
@@ -161,6 +169,38 @@ module App
 		end
 	end
 
+	class Config
+		@@config = {}
+
+		def load
+			@@config = {
+				'general' => {
+					'mini_view' => true,
+					'timeline_item_limit' => 500
+				},
+				'tab' => []
+			}
+
+			if File.exist?("config.json")
+				open("config.json") do |io|
+					@@config = JSON.load(io)
+				end
+			end
+		end
+
+		def root
+			return @@config
+		end
+
+		def method_missing(meth, *args, &blk)
+			if args.empty?
+				return @@config[meth.to_s]
+			else
+				return @@config[meth.to_s] = args[0]
+			end
+		end
+	end
+
 	class Controller
 		def initialize
 			@growl = App::Growl.new
@@ -180,9 +220,9 @@ module App
 					end
 				elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
 					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
-					$res_mention.unshift(res)
+					# $res_mention.unshift(res)
 				end
-				$res_home.unshift(res)
+				# $res_home.unshift(res)
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
@@ -222,6 +262,10 @@ module App
 	end
 
 	class Constructor
+		def initialize
+			@config = App::Config.new
+		end
+
 		def text(res)
 			res[:tab] = []
 			res[:tab] << "timeline"
@@ -249,6 +293,20 @@ module App
 			elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
 				res[:tab] << "mention"
 			end
+			@config.tab.each { |tab_config|
+				if res['text'] =~ Regexp.new(tab_config['regexp'])
+					res[:tab] << tab_config['bundle']
+				end
+			}
+			res[:tab].each { |tab|
+				if tab == "mention"
+					$res_mention.unshift(res)
+				elsif tab != "timeline"
+					$res_tab[tab] = [] unless $res_tab.key?(tab)
+					$res_tab[tab].unshift(res)
+				end
+			}
+			$res_home.unshift(res)
 			return res
 		end
 
@@ -273,6 +331,8 @@ module App
 	class Receiver
 		def initialize
 			@twitter_api = App::TwitterAPI.new
+			@constructor = App::Constructor.new
+			@config = App::Config.new
 
 			Twitter.configure do |config|
 			    config.consumer_key = CONSUMER_KEY
@@ -283,6 +343,10 @@ module App
 			    :oauth_token => ACCESS_TOKEN,
 			    :oauth_token_secret => ACCESS_TOKEN_SECRET
 			)
+		end
+
+		def configure(argu)
+			return @config.root
 		end
 
 		def favorite(argu)
@@ -348,6 +412,17 @@ module App
 			from = argu[0]
 			num = argu[1]
 			return $res_mention[from, num]
+		end
+
+		def tab_timeline(argu)
+			tab_bundle = argu[0]
+			from = argu[1]
+			num = argu[2]
+			if $res_tab.key?(tab_bundle)
+				return $res_tab[tab_bundle][from, num]
+			else
+				return []
+			end
 		end
 
 		def filter_timeline(argu)

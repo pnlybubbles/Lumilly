@@ -315,3 +315,20 @@ methods.hide_favorite = function(data) {
 		unfavorite_item(item);
 	}
 };
+
+
+// set config
+
+var config;
+
+methods.set_config = function(conf) {
+	console.log(conf);
+	config = conf;
+	list_item_limit = parseInt(config.general.timeline_item_limit, 10);
+	mini_view = config.general.mini_view;
+	tab_setup();
+	config.tab.forEach(function(tab_config) {
+		tell("tab_timeline", [tab_config.bundle, 0, 50], "fill_timeline");
+	});
+};
+
