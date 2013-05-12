@@ -332,3 +332,14 @@ methods.set_config = function(conf) {
 	});
 };
 
+
+// open link
+
+methods.open_link = function() {
+	items = new Items();
+	items.item.forEach(function(item) {
+		item.src.entities.urls.forEach(function(url_data) {
+			window.open(url_data.expanded_url);
+		});
+	});
+};
