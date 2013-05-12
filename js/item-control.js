@@ -80,6 +80,18 @@ function add_cursor(items) {
 }
 
 
+// remove cursor
+
+function remove_cursor(items) {
+	if(items instanceof Item) { items = new Items(items); }
+	if(items.all_initialized()) {
+		deselect_cursor(items);
+	} else {
+		throw new Error("item not found: " + JSON.stringify(items));
+	}
+}
+
+
 // expand cursor
 
 function expand_cursor(items) {

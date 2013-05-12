@@ -29,6 +29,7 @@ methods.go_prev = function() {
 			}
 		}
 	}
+	expand_base_item = prev_item;
 };
 
 
@@ -46,6 +47,73 @@ methods.go_next = function() {
 	if(items.all_initialized()) {
 		if(next_item) {
 			move_cursor(next_item);
+			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
+				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
+				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
+					scroll_top = ($container.height() + container_margin - window.innerHeight);
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+			}
+		}
+	}
+	expand_base_item = next_item;
+};
+
+
+// expand cursor to prev
+
+var expand_base_item;
+
+methods.expand_prev = function() {
+	var items = new Items();
+	var prev_item;
+	if(!(items.all_initialized()) || !(expand_base_item)) {
+		return;
+	} else {
+		if(items.item.length === 1 || expand_base_item.id == items.last().id) {
+			prev_item = items.first().prev();
+			if(prev_item) {
+				add_cursor(prev_item);
+			}
+		} else if(expand_base_item.id == items.first().id) {
+			prev_item = items.last();
+			if(prev_item) {
+				remove_cursor(prev_item);
+			}
+		}
+		if(prev_item) {
+			if(prev_item.elm.offset().top < $body.scrollTop() || (prev_item.elm.offset().top + prev_item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
+				var scroll_top = prev_item.elm.offset().top - (window.innerHeight / 2);
+				if(scroll_top < 0) {
+					scroll_top = 0;
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+			}
+		}
+	}
+};
+
+
+// expand to next
+
+methods.expand_next = function() {
+	var items = new Items();
+	var next_item;
+	if(!(items.all_initialized()) || !(expand_base_item)) {
+		return;
+	} else {
+		if(items.item.length === 1 || expand_base_item.id == items.first().id) {
+			next_item = items.last().next();
+			if(next_item) {
+				add_cursor(next_item);
+			}
+		} else if(expand_base_item.id == items.last().id) {
+			next_item = items.first();
+			if(next_item) {
+				remove_cursor(next_item);
+			}
+		}
+		if(next_item) {
 			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
 				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
 				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {

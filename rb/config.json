@@ -30,6 +30,10 @@
         "38": {
             "go_prev": [
                 "tl"
+            ],
+            "expand_prev": [
+                "tl",
+                "shift"
             ]
         }, 
         "40": {
@@ -39,6 +43,10 @@
             ], 
             "go_next": [
                 "tl"
+            ],
+            "expand_next": [
+                "tl",
+                "shift"
             ]
         }, 
         "67": {

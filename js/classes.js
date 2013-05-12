@@ -200,6 +200,9 @@ Item.prototype = {
 			return undefined;
 		}
 	},
+	coord: function() {
+		return itemChunk[this.act].id_list.indexOf(this.id);
+	},
 	check: function() {
 		for(var key in this) {
 			if(this[key] === null || this[key] === undefined) {

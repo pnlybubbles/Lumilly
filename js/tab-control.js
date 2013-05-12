@@ -26,7 +26,7 @@ function tab_setup () {
 	tab_label = ["Timeline", "Mention"];
 	tab = tab.concat(config.tab.map(function(v) { return v.bundle; }));
 	tab_label = tab_label.concat(config.tab.map(function(v) { return v.label; }));
-	console.log(tab);
+	// console.log(tab);
 	var $tab_list_box = $(".tab_list_box");
 	var $list_view = $(".list_view");
 	tab.forEach(function(value, i) {
@@ -38,7 +38,7 @@ function tab_setup () {
 		tab_is_bottom[i] = true;
 	});
 	$tab_list_box.find(".tab_ls").mousedown(function() {
-		console.log($(this).attr("tab"));
+		// console.log($(this).attr("tab"));
 		toggle_tab(tab.indexOf($(this).attr("tab")));
 	});
 	$tab_list_box.find(".tab_ls[tab='" + tab[act] + "']").addClass("active_tab");
@@ -54,14 +54,14 @@ function tab_setup () {
 // toggle tab
 
 function toggle_tab (num) {
-	console.log(num);
+	// console.log(num);
 	var window_height = window.innerHeight;
 	tab_scroll_top[act] = $body.scrollTop();
 	tab_is_bottom[act] = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var $tab_list_box = $(".tab_list_box");
 	$tab_list_box.find(".tab_ls[tab='" + tab[act] + "']").removeClass("active_tab");
 	$tab_list_box.find(".tab_ls[tab='" + tab[num] + "']").addClass("active_tab");
-	console.log($container);
+	// console.log($container);
 	$container.removeClass("active");
 	$container = $(".container[tab='" + tab[num] + "']");
 	$container.addClass("active");
