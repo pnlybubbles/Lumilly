@@ -42,7 +42,7 @@ module App
 			# https.verify_mode = OpenSSL::SSL::VERIFY_PEER
 			https.verify_mode = OpenSSL::SSL::VERIFY_NONE
 			# https.verify_depth = 5
-			
+
 			https.start do |session|
 				request = Net::HTTP::Get.new(uri.request_uri)
 				request.oauth!(session, @consumer, @access_token)
@@ -227,9 +227,9 @@ module App
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
-				
+
 			when res['friends']
-				
+
 			when res['event']
 				case res['event']
 				when 'follow'
@@ -252,7 +252,7 @@ module App
 					mthd = "hide_favorite"
 					argu = res
 				else
-					
+
 				end
 			else
 

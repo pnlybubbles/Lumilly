@@ -137,6 +137,7 @@ function is_reply (data) {
 var list_item_limit = 500;
 
 function show_item (data) {
+	// console.log(data);
 	var window_height = window.innerHeight;
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
 	var tab_num = [];
@@ -190,7 +191,7 @@ function show_item (data) {
 			// add to item
 			var $item;
 			if (coord !== null) {
-				$item = $(".container." + tab[tab_num[i]]).find(".item[_id_='" + id + "']");
+				$item = $(".container[tab='" + tab[tab_num[i]] + "']").find(".item[_id_='" + id + "']");
 				itemChunk[tab_num[i]].add(data, $item, coord);
 			} else {
 				return true;

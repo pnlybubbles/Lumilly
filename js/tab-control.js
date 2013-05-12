@@ -30,30 +30,40 @@ function tab_setup () {
 	var $tab_list_box = $(".tab_list_box");
 	var $list_view = $(".list_view");
 	tab.forEach(function(value, i) {
-		$tab_list_box.append("<div class='ls " + value + "'><div class='tab_label'>" + tab_label[i] + "</div></div>");
-		$tab_list_box.find(".ls").mousedown(function() {
-			toggle_tab(tab.indexOf($(this).attr("class").replace(/ls\s*/, "")));
-		});
-		$list_view.append("<div class='container " + value + "'></div>");
-		$containers[i] = $(".container." + tab[i]);
+		$tab_list_box.append("<div class='tab_ls' tab='" + value + "'><div class='tab_label'>" + tab_label[i] + "</div></div>");
+		$list_view.append("<div class='container' tab='" + value + "'></div>");
+		$containers[i] = $(".container[tab='" + tab[i] + "']");
 		itemChunk[i] = new Container();
 		tab_scroll_top[i] = 10000;
 		tab_is_bottom[i] = true;
 	});
-	$container = $(".container." + tab[act]);
+	$tab_list_box.find(".tab_ls").mousedown(function() {
+		console.log($(this).attr("tab"));
+		toggle_tab(tab.indexOf($(this).attr("tab")));
+	});
+	$tab_list_box.find(".tab_ls[tab='" + tab[act] + "']").addClass("active_tab");
+	$container = $(".container[tab='" + tab[act] + "']");
 	$container.addClass("active");
-	container_margin = parseInt($container.css("margin-bottom"), 10);
+	container_margin = $(".bottom_wrap").height();
+	$(".container").css({
+		"margin-bottom" : container_margin + "px"
+	});
 }
 
 
 // toggle tab
 
 function toggle_tab (num) {
+	console.log(num);
 	var window_height = window.innerHeight;
 	tab_scroll_top[act] = $body.scrollTop();
 	tab_is_bottom[act] = auto_scrolling || ($body.scrollTop() + window_height >= $container.height() + container_margin);
+	var $tab_list_box = $(".tab_list_box");
+	$tab_list_box.find(".tab_ls[tab='" + tab[act] + "']").removeClass("active_tab");
+	$tab_list_box.find(".tab_ls[tab='" + tab[num] + "']").addClass("active_tab");
+	console.log($container);
 	$container.removeClass("active");
-	$container = $(".container." + tab[num]);
+	$container = $(".container[tab='" + tab[num] + "']");
 	$container.addClass("active");
 	if(tab_is_bottom[num]) {
 		$body.scrollTop($container.height() + container_margin - window_height);
