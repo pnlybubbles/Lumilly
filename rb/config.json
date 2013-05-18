@@ -34,6 +34,10 @@
             "expand_prev": [
                 "tl",
                 "shift"
+            ],
+            "go_prev_reply": [
+                "tl",
+                "ctrl"
             ]
         }, 
         "40": {
@@ -47,6 +51,10 @@
             "expand_next": [
                 "tl",
                 "shift"
+            ],
+            "go_next_reply": [
+                "tl",
+                "ctrl"
             ]
         }, 
         "67": {

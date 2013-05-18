@@ -233,7 +233,9 @@ module App
 			when res['event']
 				case res['event']
 				when 'follow'
-					@growl.notify("Follow: @#{res['source']['screen_name']}", res['source']['name'])
+					if $my_data && res['source']['id'] != $my_data['id']
+						@growl.notify("Follow: @#{res['source']['screen_name']}", res['source']['name'])
+					end
 				when 'unfollow'
 
 				when 'favorite'

@@ -23,7 +23,7 @@ Container.prototype = {
 			"src" : null,
 			"elm" : null
 		};
-		this.arrays = ["id_list", "id_src_list", "favorited_list", "retweeted_list", "source_list", "element_list"];
+		this.arrays = ["id_list", "id_src_list", "favorited_list", "retweeted_list", "source_list", "element_list", "type_list"];
 		this.arrays.forEach(function(mthd, i) {
 			this[mthd] = [];
 		}, this);
@@ -31,7 +31,7 @@ Container.prototype = {
 		this["buttons_opened"] = null;
 	},
 	add: function(data, elm, coord) {
-		if (coord === undefined) {
+		if(coord === undefined) {
 			coord = id_list.length;
 		}
 		if(data.retweeted_status) {
@@ -44,6 +44,7 @@ Container.prototype = {
 		this.retweeted_list.splice(coord, 0, data.retweeted);
 		this.source_list.splice(coord, 0, data);
 		this.element_list.splice(coord, 0, elm);
+		this.type_list.splice(coord, 0, data.tab);
 		// console.log(JSON.stringify(this.source_list.map(function(v) { return v.text; })));
 	},
 	remove: function(coord) {
@@ -69,7 +70,8 @@ Container.prototype = {
 				"favorited" : this.favorited_list[coord],
 				"retweeted" : this.retweeted_list[coord],
 				"src" : this.source_list[coord],
-				"elm" : this.element_list[coord]
+				"elm" : this.element_list[coord],
+				"type" : this.type_list[coord]
 			};
 		} else {
 			return undefined;

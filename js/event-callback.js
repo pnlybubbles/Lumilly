@@ -126,6 +126,87 @@ methods.expand_next = function() {
 };
 
 
+// go prev reply
+
+methods.go_prev_reply = function() {
+	var items = new Items();
+	var item;
+	if(!(items.all_initialized())) {
+		items = new Items(itemChunk[act].last());
+		item = items.first();
+	} else {
+		item = items.first();
+	}
+	var coord = null;
+	var type_list = $.extend(true, [], itemChunk[act].type_list);
+	$.each(type_list.reverse(), function(i, type) {
+		if(i <= type_list.length - item.coord - 1) {
+			return true;
+		}
+		if(type.indexOf("mention") != -1) {
+			// console.log(type);
+			coord = type_list.length - i - 1;
+			return false;
+		}
+	});
+	// console.log(coord);
+	if(coord !== null) {
+		var prev_item = new Item({"coord" : coord});
+		// console.log(prev_item);
+		if(prev_item) {
+			move_cursor(prev_item);
+			if(prev_item.elm.offset().top < $body.scrollTop() || (prev_item.elm.offset().top + prev_item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
+				var scroll_top = prev_item.elm.offset().top - (window.innerHeight / 2);
+				if(scroll_top < 0) {
+					scroll_top = 0;
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+			}
+		}
+	}
+};
+
+
+// go next reply
+
+methods.go_next_reply = function() {
+	var items = new Items();
+	var item;
+	if(!(items.all_initialized())) {
+		send("go_prev_reply");
+		return;
+	} else {
+		item = items.last();
+	}
+	var coord = null;
+	var type_list = $.extend(true, [], itemChunk[act].type_list);
+	$.each(type_list, function(i, type) {
+		if(i <= item.coord) {
+			return true;
+		}
+		if(type.indexOf("mention") != -1) {
+			// console.log(type);
+			coord = i;
+			return false;
+		}
+	});
+	// console.log(coord);
+	if(coord !== null) {
+		var next_item = new Item({"coord" : coord});
+		if(next_item) {
+			move_cursor(next_item);
+			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
+				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
+				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
+					scroll_top = ($container.height() + container_margin - window.innerHeight);
+				}
+				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+			}
+		}
+	}
+};
+
+
 // favorite item
 
 methods.toggle_favorite = function() {
