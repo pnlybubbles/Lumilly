@@ -466,6 +466,26 @@ methods.hide_favorite = function(data) {
 };
 
 
+// hide item
+
+methods.hide_tweet = function(data) {
+	var is_bottom = auto_scrolling || ($body.scrollTop() + window.innerHeight >= $container.height() + container_margin);
+	$.each(tab, function(i) {
+		remove_item = new Item({"id" : data.delete.status.id_str}, i);
+		console.log(remove_item);
+		if(remove_item.initialized) {
+			var fix_scroll_height = remove_item.elm.height();
+			var is_above = remove_item.elm.offset().top + fix_scroll_height < $body.scrollTop();
+			remove_item.elm.remove();
+			if(!(is_bottom) && is_above) {
+				$body.scrollTop($body.scrollTop() - fix_scroll_height);
+			}
+			remove_item.remove();
+		}
+	});
+};
+
+
 // set config
 
 var config;

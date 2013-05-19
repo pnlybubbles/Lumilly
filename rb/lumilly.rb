@@ -227,7 +227,11 @@ module App
 				mthd = "show_tweet"
 				argu = res
 			when res['delete']
-
+				Thread.new {
+					@constructor.remove_data(res)
+				}
+				mthd = "hide_tweet"
+				argu = res
 			when res['friends']
 
 			when res['event']
@@ -328,6 +332,29 @@ module App
 					end
 				}
 			end
+		end
+
+		def remove_data(res)
+			$res_home.each_with_index { |v, i|
+				if v['id'] == res['delete']['status']['id']
+					$res_home.delete_at(i)
+					break
+				end
+			}
+			$res_mention.each_with_index { |v, i|
+				if v['id'] == res['delete']['status']['id']
+					$res_mention.delete_at(i)
+					break
+				end
+			}
+			$res_tab.each_with_index { |res_data, j|
+				res_data.each_with_index { |v, i|
+					if v['id'] == res['delete']['status']['id']
+						$res_tab[j].delete_at(i)
+						break
+					end
+				}
+			}
 		end
 	end
 
