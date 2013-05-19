@@ -510,5 +510,8 @@ methods.open_link = function() {
 		item.src.entities.urls.forEach(function(url_data) {
 			window.open(url_data.expanded_url);
 		});
+		item.src.entities.media.forEach(function(media_data) {
+			window.open(media_data.expanded_url);
+		});
 	});
 };
