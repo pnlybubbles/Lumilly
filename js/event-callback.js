@@ -507,11 +507,15 @@ methods.set_config = function(conf) {
 methods.open_link = function() {
 	items = new Items();
 	items.item.forEach(function(item) {
-		item.src.entities.urls.forEach(function(url_data) {
-			window.open(url_data.expanded_url);
-		});
-		item.src.entities.media.forEach(function(media_data) {
-			window.open(media_data.expanded_url);
-		});
+		if(item.src.entities.urls.length !== 0) {
+			item.src.entities.urls.forEach(function(url_data) {
+				window.open(url_data.expanded_url);
+			});
+		}
+		if(item.src.entities.media.length !== 0) {
+			item.src.entities.media.forEach(function(media_data) {
+				window.open(media_data.expanded_url);
+			});
+		}
 	});
 };
