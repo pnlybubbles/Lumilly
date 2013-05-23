@@ -27,16 +27,28 @@
                 "tl"
             ]
         }, 
+        "37": {
+            "go_prev_tab": [
+                "tl", 
+                "ctrl"
+            ]
+        }, 
         "38": {
+            "expand_prev": [
+                "tl", 
+                "shift"
+            ], 
             "go_prev": [
                 "tl"
-            ],
-            "expand_prev": [
-                "tl",
-                "shift"
-            ],
+            ], 
             "go_prev_reply": [
-                "tl",
+                "tl", 
+                "ctrl"
+            ]
+        }, 
+        "39": {
+            "go_next_tab": [
+                "tl", 
                 "ctrl"
             ]
         }, 
@@ -45,15 +57,15 @@
                 "tl", 
                 "meta"
             ], 
+            "expand_next": [
+                "tl", 
+                "shift"
+            ], 
             "go_next": [
                 "tl"
-            ],
-            "expand_next": [
-                "tl",
-                "shift"
-            ],
+            ], 
             "go_next_reply": [
-                "tl",
+                "tl", 
                 "ctrl"
             ]
         }, 

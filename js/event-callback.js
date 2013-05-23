@@ -415,6 +415,41 @@ methods.toggle_buttons_opened = function() {
 };
 
 
+// open link
+
+methods.open_link = function() {
+	items = new Items();
+	items.item.forEach(function(item) {
+		if(item.src.entities.urls.length !== 0) {
+			item.src.entities.urls.forEach(function(url_data) {
+				window.open(url_data.expanded_url);
+			});
+		}
+		if(item.src.entities.media.length !== 0) {
+			item.src.entities.media.forEach(function(media_data) {
+				window.open(media_data.expanded_url);
+			});
+		}
+	});
+};
+
+
+// go next tab
+
+methods.go_next_tab = function() {
+	// console.log(act >= tab.length - 1 ? 0 : act + 1);
+	toggle_tab(act >= tab.length - 1 ? 0 : act + 1);
+};
+
+
+// go prev tab
+
+methods.go_prev_tab = function() {
+	// console.log(act === 0 ? tab.length - 1 : act - 1);
+	toggle_tab(act === 0 ? tab.length - 1 : act - 1);
+};
+
+
 //=========================
 // event from server
 //=========================
@@ -472,7 +507,7 @@ methods.hide_tweet = function(data) {
 	var is_bottom = auto_scrolling || ($body.scrollTop() + window.innerHeight >= $container.height() + container_margin);
 	$.each(tab, function(i) {
 		remove_item = new Item({"id" : data.delete.status.id_str}, i);
-		console.log(remove_item);
+		// console.log(remove_item);
 		if(remove_item.initialized) {
 			var fix_scroll_height = remove_item.elm.height();
 			var is_above = remove_item.elm.offset().top + fix_scroll_height < $body.scrollTop();
@@ -498,24 +533,5 @@ methods.set_config = function(conf) {
 	tab_setup();
 	config.tab.forEach(function(tab_config) {
 		tell("tab_timeline", [tab_config.bundle, 0, 50], "fill_timeline");
-	});
-};
-
-
-// open link
-
-methods.open_link = function() {
-	items = new Items();
-	items.item.forEach(function(item) {
-		if(item.src.entities.urls.length !== 0) {
-			item.src.entities.urls.forEach(function(url_data) {
-				window.open(url_data.expanded_url);
-			});
-		}
-		if(item.src.entities.media.length !== 0) {
-			item.src.entities.media.forEach(function(media_data) {
-				window.open(media_data.expanded_url);
-			});
-		}
 	});
 };
