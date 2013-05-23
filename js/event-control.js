@@ -52,8 +52,8 @@ function set_events () {
 				} else { return v; }
 			}).sort();
 			method_with_state = method_with_state.slice(0, (undefined_pos = method_with_state.indexOf(undefined) == -1 ? method_with_state.length : undefined_pos + 1));
-			console.log(method_with_state);
-			console.log(with_state);
+			// console.log(method_with_state);
+			// console.log(with_state);
 			if(JSON.stringify(method_with_state) == JSON.stringify(with_state)) {
 				if(!(no_prevent_default)) {
 					if(event.preventDefault) {
