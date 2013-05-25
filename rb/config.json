@@ -8,6 +8,10 @@
             "create_reply": [
                 "tl"
             ], 
+            "create_multi_reply": [
+                "tl",
+                "ctrl"
+            ],
             "enter_to_post": [
                 "type"
             ], 

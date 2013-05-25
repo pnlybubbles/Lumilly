@@ -121,6 +121,7 @@ module App
 					Thread.new(ws) { |ws_t|
 						loop {
 							begin
+								puts "==== connecting..."
 								@twitter_api.connect { |res|
 									# p res
 									mthd, argu = @controller.respose(res)

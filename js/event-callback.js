@@ -3,6 +3,15 @@ Methods callback on event
 */
 
 //=========================
+// on ready
+//=========================
+
+methods.on_ready = function() {
+	ready();
+};
+
+
+//=========================
 // key control
 //=========================
 
@@ -20,13 +29,7 @@ methods.go_prev = function() {
 	if(items.all_initialized()) {
 		if(prev_item) {
 			move_cursor(prev_item);
-			if(prev_item.elm.offset().top < $body.scrollTop() || (prev_item.elm.offset().top + prev_item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
-				var scroll_top = prev_item.elm.offset().top - (window.innerHeight / 2);
-				if(scroll_top < 0) {
-					scroll_top = 0;
-				}
-				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
-			}
+			fix_scrolling(prev_item, false);
 		}
 	}
 	expand_base_item = prev_item;
@@ -47,13 +50,7 @@ methods.go_next = function() {
 	if(items.all_initialized()) {
 		if(next_item) {
 			move_cursor(next_item);
-			if(next_item.elm.offset().top < $body.scrollTop() || (next_item.elm.offset().top + next_item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
-				var scroll_top = (next_item.elm.offset().top + next_item.elm.height()) - (window.innerHeight / 2);
-				if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
-					scroll_top = ($container.height() + container_margin - window.innerHeight);
-				}
-				$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
-			}
+			fix_scrolling(next_item, false);
 		}
 	}
 	expand_base_item = next_item;
@@ -306,10 +303,51 @@ methods.create_reply = function() {
 	var items = new Items();
 	if(items.all_initialized()) {
 		var reply_screen_names = [];
-		$.each(items.item, function(i, item) { reply_screen_names[i] = item.src.user.screen_name; });
+		$.each(items.item, function(i, item) {
+			var base_data;
+			if(item.src.retweeted_status) {
+				base_data = item.src.retweeted_status;
+			} else {
+				base_data = item.src;
+			}
+			reply_screen_names.push(base_data.user.screen_name);
+		});
+		reply_screen_names = reply_screen_names.unique();
 		$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
 		in_reply_to["screen_name"] = items.first().src.user.screen_name;
 		in_reply_to["id"] = items.first().src.id_str;
+		$post_textarea.focus();
+		post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
+	}
+};
+
+
+// create multi reply
+
+methods.create_multi_reply = function() {
+	var items = new Items();
+	if(items.all_initialized()) {
+		var reply_screen_names = [];
+		$.each(items.item, function(i, item) {
+			var base_data;
+			if(item.src.retweeted_status) {
+				base_data = item.src.retweeted_status;
+			} else {
+				base_data = item.src;
+			}
+			reply_screen_names.push(base_data.user.screen_name);
+			if(base_data.entities.user_mentions.length !== 0) {
+				$.each(base_data.entities.user_mentions, function(i, user_mention) {
+					if(user_mention.id_str != mydata.id_str) {
+						reply_screen_names.push(user_mention.screen_name);
+					}
+				});
+			}
+		});
+		reply_screen_names = reply_screen_names.unique();
+		$post_textarea.val("@" + reply_screen_names.join(" @") + " " + $post_textarea.val());
+		in_reply_to["screen_name"] = reply_screen_names[0];
+		in_reply_to["id"] = items.first().src.retweeted_status ? items.first().src.retweeted_status.id_str : items.first().src.id_str;
 		$post_textarea.focus();
 		post_textarea.setSelectionRange(post_textarea.value.length, post_textarea.value.length);
 	}
@@ -326,9 +364,15 @@ methods.unofficial_retweet = function() {
 		var reply_screen_name;
 		var reply_id;
 		var reply_text;
-		reply_screen_name = items.first().src.user.screen_name;
-		reply_id = items.first().src.id_str;
-		reply_text = items.first().src.text;
+		var base_data;
+		if(items.first().src.retweeted_status) {
+			base_data = items.first().src.retweeted_status;
+		} else {
+			base_data = items.first().src;
+		}
+		reply_screen_name = base_data.user.screen_name;
+		reply_id = base_data.id_str;
+		reply_text = base_data.text;
 		var unofficial_retweet_text = unofficial_retweet_templete.replace_with({
 			"%screen_name%" : reply_screen_name,
 			"%text%" : reply_text

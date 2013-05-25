@@ -23,6 +23,7 @@ function on_open () {
 	tell("verify_credentials", null, "set_my_data");
 	tell("home_timeline", [0, 200], "fill_timeline");
 	tell("mention_timeline", [0, 50], "fill_timeline");
+	send("on_ready");
 }
 
 function on_colse () {

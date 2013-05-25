@@ -20,20 +20,41 @@ function clicked_cursor (item) {
 		}
 		move_cursor(item);
 		var scroll_top;
-		if(item.elm.offset().top < $body.scrollTop() || (item.elm.offset().top + item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
-			scroll_top = item.elm.offset().top - (window.innerHeight / 2);
-			if(scroll_top < 0) {
-				scroll_top = 0;
-			}
-			$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+		fix_scrolling(item, true);
+	}
+}
+
+
+// change scrolling
+
+function fix_scrolling (item, opt) {
+	var not_centering;
+	if(!(!(opt))) {
+		not_centering = true;
+	} else {
+		not_centering = false;
+	}
+	var scroll_top;
+	if(item.elm.offset().top < $body.scrollTop() || (item.elm.offset().top + item.elm.height()) > ($body.scrollTop() + window.innerHeight)) {
+		if(not_centering) {
+			scroll_top = item.elm.offset().top + 1;
+		} else {
+			scroll_top = item.elm.offset().top - ((window.innerHeight - container_margin) / 2);
 		}
-		if(item.elm.offset().top < $body.scrollTop() || (item.elm.offset().top + item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
-			scroll_top = (item.elm.offset().top + item.elm.height()) - (window.innerHeight / 2);
-			if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
-				scroll_top = ($container.height() + container_margin - window.innerHeight);
-			}
-			$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
+		if(scroll_top < 0) {
+			scroll_top = 0;
 		}
+		$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; console.log($body.scrollTop()); });
+	} else if(item.elm.offset().top < $body.scrollTop() || (item.elm.offset().top + item.elm.height()) > ($body.scrollTop() + window.innerHeight - container_margin)) {
+		if(not_centering) {
+			scroll_top = (item.elm.offset().top + item.elm.height()) - window.innerHeight + container_margin;
+		} else {
+			scroll_top = item.elm.offset().top + item.elm.height() - ((window.innerHeight - container_margin) / 2);
+		}
+		if(scroll_top > ($container.height() + container_margin - window.innerHeight)) {
+			scroll_top = ($container.height() + container_margin - window.innerHeight);
+		}
+		$body.stop().animate({ scrollTop: scroll_top }, 400, 'easeOutExpo', function(){ auto_scrolling = false; });
 	}
 }
 
