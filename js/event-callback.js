@@ -256,11 +256,10 @@ var media = {
 	"baseurl" : null
 };
 
-// tell("image_set", [e.target.result, theFile.name]);
-
 methods.enter_to_post = function() {
-	text = $post_textarea.val();
-	if(text.length <= 140 && text.length !== 0) {
+	var text = $post_textarea.val();
+	var count = check_update_count(text, media.file_name);
+	if(count <= 140 && count !== 0) {
 		var in_reply_to_id = null;
 		if(in_reply_to["screen_name"]) {
 			if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
@@ -389,7 +388,7 @@ methods.unofficial_retweet = function() {
 // update post_textarea count
 
 methods.update_post_textarea_count = function() {
-	var count = 140 - $post_textarea.val().length;
+	var count = 140 - check_update_count($post_textarea.val(), media.file_name);
 	if(count < 0) {
 		$post_textarea_count.css({"color" : "rgb(255, 54, 46)"});
 	} else {

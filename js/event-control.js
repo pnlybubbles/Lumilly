@@ -96,10 +96,11 @@ function set_events () {
 	// behavior on focus to post_textarea
 	$post_textarea.focus(function() {
 		typing_event = true;
-		send("update_post_textarea_count"); // show post_textarea_count
+		$post_textarea_count.show();
+		send("update_post_textarea_count");
 	}).blur(function() {
 		typing_event = false;
-		$post_textarea_count.text(""); // hide post_textarea_count
+		$post_textarea_count.hide();
 	});
 	// load file on drop image
 	$.event.props.push('dataTransfer');
@@ -125,12 +126,19 @@ function set_events () {
 						$(this).parent().fadeOut(250, function() {
 							$attach_area.empty();
 						});
+						media = {
+							"file_name" : null,
+							"baseurl" : null
+						};
+						$post_textarea.focus();
+						send("update_post_textarea_count");
 					});
 					media = {
 						"file_name" : theFile.name,
 						"baseurl" : e.target.result
 					};
 					console.log(media);
+					send("update_post_textarea_count");
 				};
 			})(f);
 			// Read in the image file as a data URL.
