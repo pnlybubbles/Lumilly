@@ -18,11 +18,11 @@ Twitterクライアント
 
 ###rb
 
-* luminous.rb ---- TwitterAPIよりデータを取得し、WebSocketを介してUIの制御を行う。
+* lumilly.rb ---- TwitterAPIよりデータを取得し、WebSocketを介してUIの制御を行う。
 
 * websocket_server_daemon.rb ---- WebSocketサーバー
 
-* websocket_server_with_handler_client_no_faye.rb ---- Windows向けにfaye-websocketを利用せずにluminous.rbを移植したもの。（不安定かつ更新は行われない）
+* websocket_server_with_handler_client_no_faye.rb ---- Windows向けにfaye-websocketを利用せずにlumilly.rbを移植したもの。（不安定かつ更新は行われない）
 
 ###main.html
 
@@ -37,7 +37,7 @@ Twitterクライアント
 
 ###gemのインストール
 
-	gem install oauth daemons faye-websocket em-websocket
+	gem install twitter oauth daemons faye-websocket em-websocket
 
 (windowsの場合`faye-websocket`のインストールができません。)
 
@@ -47,7 +47,7 @@ ConsumerKey, AcccessTokenは自分で入れて下さい。
 
 	key_token.rb
 
-というファイルを作成し、２つ上の階層に配置してください。(`../../key_token.rb`)
+というファイルを作成し、rb直下に配置してください。(`./rb/key_token.rb`)
 
 ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.rb`に追加して下さい。
 
@@ -59,17 +59,18 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.rb`�
 
 
 ###実行
-
-	ruby luminous.rb
+  cd ./rb
+	ruby lumilly.rb
 
 これを実行した後、ブラウザで`main.html`を開きます。
 
-`luminous.rb`の終了は`^C`で行なって下さい。
+`lumilly.rb`の終了は`^C`で行なって下さい。
 
 
 #ライセンス
 
 3-clause BSD license
 
-Copyright (c) 2013, pnlybubbles  
+Copyright (c) 2013, pnlybubbles
+Copyright (c) 2014, alphaKAI
 All rights reserved.
