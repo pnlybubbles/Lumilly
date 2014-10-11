@@ -10,7 +10,7 @@ require 'openssl'
 require 'date'
 require 'daemons'
 require 'twitter'
-require_relative '../../key_token.rb'
+require_relative './key_token.rb'
 
 require 'pp'
 
@@ -38,13 +38,10 @@ module App
 			uri = URI.parse("https://userstream.twitter.com/1.1/user.json")
 			https = Net::HTTP.new(uri.host, uri.port)
 			https.use_ssl = true
-			# https.ca_file = CERTIFICATE_PATH
-			# https.verify_mode = OpenSSL::SSL::VERIFY_PEER
 			https.verify_mode = OpenSSL::SSL::VERIFY_NONE
-			# https.verify_depth = 5
 
 			https.start do |session|
-				request = Net::HTTP::Get.new(uri.request_uri)
+        request = Net::HTTP::Get.new(uri.request_uri, 'Accept-Encoding' => 'identity')
 				request.oauth!(session, @consumer, @access_token)
 				buf = ""
 				session.request(request) do |response|
@@ -275,6 +272,8 @@ module App
 		end
 
 		def text(res)
+      # Ignore res if res is Array
+      return nil if res.class == Array 
 			res[:tab] = []
 			res[:tab] << "timeline"
 			created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
@@ -365,15 +364,13 @@ module App
 			@constructor = App::Constructor.new
 			@config = App::Config.new
 
-			Twitter.configure do |config|
-			    config.consumer_key = CONSUMER_KEY
-			    config.consumer_secret = CONSUMER_SECRET
-			end
 
-			@api = Twitter::Client.new(
-			    :oauth_token => ACCESS_TOKEN,
-			    :oauth_token_secret => ACCESS_TOKEN_SECRET
-			)
+      @api = Twitter::REST::Client.new do |config|
+        config.consumer_key        = CONSUMER_KEY
+        config.consumer_secret     = CONSUMER_SECRET
+        config.access_token        = ACCESS_TOKEN
+        config.access_token_secret = ACCESS_TOKEN_SECRET
+      end
 		end
 
 		def configure(argu)
