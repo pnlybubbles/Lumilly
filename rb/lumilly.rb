@@ -1,495 +1,311 @@
-# encoding: utf-8
-
-require 'faye/websocket'
-require 'thread'
-require 'net/https'
-require 'oauth'
-require 'cgi'
-require 'json'
-require 'openssl'
-require 'date'
-require 'daemons'
-require 'twitter'
+require "em-websocket"
+require "json"
+require "twitter"
+require "sqlite3"
+require "pp"
 require_relative './key_token.rb'
 
-require 'pp'
+module Accessor
+  class Socket
+    attr_reader :tr
 
-$res_home = []
-$res_mention = []
-$res_tab = {}
+    def initialize(debug = false)
+      @tr = nil
+      @script = nil
+      @debug = debug
+    end
 
-module App
-	class TwitterAPI
-		def initialize
-			@consumer = OAuth::Consumer.new(
-			CONSUMER_KEY,
-			CONSUMER_SECRET,
-			:site => 'http://api.twitter.com/1.1'
-			)
+    def start
+      EM::WebSocket.start(:host => "localhost", :port => 8080, :debug => @debug) do |ws|
+        ws.onopen {
+          @tr = Transfer.new(ws)
+          @tr.instance_eval(&@script)
+          @tr.send("evt_open", nil)
+        }
 
-			@access_token = OAuth::AccessToken.new(
-			@consumer,
-			ACCESS_TOKEN,
-			ACCESS_TOKEN_SECRET
-			)
-		end
+        ws.onmessage { |msg|
+          @tr.get(JSON.parse(msg))
+        }
 
-		def connect(&block)
-			uri = URI.parse("https://userstream.twitter.com/1.1/user.json")
-			https = Net::HTTP.new(uri.host, uri.port)
-			https.use_ssl = true
-			https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        ws.onclose {
+          @tr.send("evt_close", nil)
+        }
+      end
+    end
 
-			https.start do |session|
-        request = Net::HTTP::Get.new(uri.request_uri, 'Accept-Encoding' => 'identity')
-				request.oauth!(session, @consumer, @access_token)
-				buf = ""
-				session.request(request) do |response|
-					response.read_body do |chunk|
-						buf << chunk
-						while(line = buf[/.*(\r\n)+/m])
-							begin
-								buf.sub!(line,"")
-								line.strip!
-								status = JSON.parse(line)
-							rescue
-								break
-							end
-							block.call(status)
-						end
-					end
-				end
-			end
-		end
+    def script(&blk)
+      @script = blk
+    end
+  end
 
-		def verify_credentials
-			return JSON.parse(@access_token.get("/account/verify_credentials.json").body)
-		end
+  class Transfer
+    def initialize(ws)
+      @ws = ws
+      @callback_queue = {}
+    end
 
-		def home_timeline(count)
-			return JSON.parse(@access_token.get("/statuses/home_timeline.json?count=#{count}").body)
-		end
+    def send_ws(msg)
+      msg["from"] = "server"
+      # pp msg
+      @ws.send(JSON.generate(msg).to_s)
+    end
 
-		def mentions_timeline(count)
-			return JSON.parse(@access_token.get("/statuses/mentions_timeline.json?count=#{count}").body)
-		end
-	end
+    def tell(req, *callback)
+      callback_id = nil
+      if !callback.empty? && callback[0]
+        callback_id = rand(36**4).to_s(36)
+        @callback_queue[callback_id] = Queue.new
+      end
+      msg = {"type" => "event", "content" => req, "callback_id" => callback_id}
+      send_ws(msg)
+      return @callback_queue[callback_id] if callback_id
+    end
 
-	class Accessor
-		def initialize
-			@controller = App::Controller.new
-			@receiver = App::Receiver.new
-			@twitter_api = App::TwitterAPI.new
-			@constructor = App::Constructor.new
-			@config = App::Config.new
-			@config.load
-		end
+    def get(req)
+      Thread.new {
+        begin
+          if req["from"] == "client"
+            # pp req
+            e = req["content"]
+            case req["type"]
+            when "event"
+              argu = e["argu"].nil? ? [] : (e["argu"].class == Array ? e["argu"] : [e["argu"]])
+              ret = self.send("evt_#{e['name']}", *argu)
+              if req["callback_id"]
+                msg = {"type" => "callback", "content" => {"return" => ret}, "callback_id" => req["callback_id"]}
+                send_ws(msg)
+              end
+            when "callback"
+              @callback_queue[req["callback_id"]].push(e["return"])
+            end
+          end
+        rescue Exception => e
+          puts e
+          puts e.backtrace
+        end
+      }
+    end
 
-		def initialize_data
-			$my_data = @twitter_api.verify_credentials
-			# $res_home = @twitter_api.home_timeline(200).map { |res| @constructor.text(res) }
-			@twitter_api.home_timeline(200).each { |res| @constructor.text(res) }
-			# $res_mention = @twitter_api.mentions_timeline(200).map { |res| @constructor.text(res) }
-			@twitter_api.mentions_timeline(200).each { |res| @constructor.text(res) }
-			$res_home.sort!{ |a, b| b["id"] <=> a["id"] }
-			$res_mention.sort!{ |a, b| b["id"] <=> a["id"] }
-			# p $res_tab
-		end
+    def event(event_name)
+      raise "Error: no block given." unless block_given?
+      self.class.class_eval do
+        define_method("evt_#{event_name}") { |*argu|
+          yield(*argu)
+        }
+      end
+    end
 
-		def server
-			@sv_pid = fork do
-				exec "ruby websocket_server_daemon.rb"
-			end
+    def call_function(func_name, *argu)
+      argu = argu.nil? ? [] : (argu.class == Array ? argu : [argu])
+      msg = {"name" => func_name, "argu" => argu}
+      return tell(msg, true).pop
+    end
 
-			@sv = Process.detach(@sv_pid)
-		end
+    def call_function_asynchronous(func_name, *argu)
+      argu = argu.nil? ? [] : (argu.class == Array ? argu : [argu])
+      msg = {"name" => func_name, "argu" => argu}
+      tell(msg)
+    end
 
-		def stop_server
-			@sv.exit
-		end
+    def method_missing(meth, *args, &blk)
+      puts "method_missing : #{meth}"
+    end
+  end
+end
 
-		def client
-			EM.run {
-				ws = Faye::WebSocket::Client.new('ws://localhost:60000/')
+module Lumilly
+  class App
+    attr_reader :client, :stream_client
 
-				ws.onopen = lambda do |event|
-					p [:open]
+    def initialize
+      initialize_twitter()
+      @accessor = Accessor::Socket.new
+      @tweets = Lumilly::Tweets.new
+    end
 
-					Thread.new(ws) { |ws_t|
-						loop {
-							begin
-								puts "==== connecting..."
-								@twitter_api.connect { |res|
-									# p res
-									mthd, argu = @controller.respose(res)
-									command = {:method => mthd, :argu => argu}
-									msg = {:server => command}
-									ws_t.send(JSON.generate(msg).to_s)
-								}
-							rescue Exception => e
-								exit 1 if e.to_s == ""
-								puts "#### ERROR: #{e} ####"
-							end
-						}
-					}
-				end
-
-				ws.onmessage = lambda do |event|
-					# p [:message, event.data]
-					event_data = JSON.parse(event.data)
-					from = event_data.keys[0]
-					if from == "client"
-						p [:message, event.data]
-						data = event_data["#{from}"]
-						Thread.new(ws) { |ws_t|
-							begin
-								argu = @receiver.send(data["method"], data["argu"]);
-								mthd = data["callback"];
-								if mthd && argu
-									command = {:method => mthd, :argu => argu}
-									msg = {:server => command}
-									ws_t.send(JSON.generate(msg).to_s)
-								end
-							rescue Exception => e
-								puts "#### ERROR: #{e} ####"
-							end
-						}
-					end
-				end
-
-				ws.onclose = lambda do |event|
-					p [:close, event.code, event.reason]
-					ws = nil
-				end
-
-				puts "==== client is running"
-			}
-		end
-	end
-
-	class Config
-		@@config = {}
-
-		def load
-			@@config = {
-				'general' => {
-					'mini_view' => true,
-					'timeline_item_limit' => 500
-				},
-				'key' => {},
-				'tab' => []
-			}
-
-			if File.exist?("config.json")
-				open("config.json") do |io|
-					@@config = JSON.load(io)
-				end
-			end
-		end
-
-		def root
-			return @@config
-		end
-
-		def method_missing(meth, *args, &blk)
-			if args.empty?
-				return @@config[meth.to_s]
-			else
-				return @@config[meth.to_s] = args[0]
-			end
-		end
-	end
-
-	class Controller
-		def initialize
-			@growl = App::Growl.new
-			@constructor = App::Constructor.new
-		end
-
-		def respose(res)
-			mthd = nil
-			argu = res
-
-			case
-			when res['text']
-				res = @constructor.text(res)
-				if res['retweeted_status']
-					if $my_data && res['retweeted_status']['user']['id'] == $my_data['id']
-						@growl.notify("Retweet: @#{res['user']['screen_name']}", res['retweeted_status']['text'])
-					end
-				elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
-					@growl.notify("Reply: @#{res['user']['screen_name']}", res['text'])
-					# $res_mention.unshift(res)
-				end
-				# $res_home.unshift(res)
-				mthd = "show_tweet"
-				argu = res
-			when res['delete']
-				Thread.new {
-					@constructor.remove_data(res)
-				}
-				mthd = "hide_tweet"
-				argu = res
-			when res['friends']
-
-			when res['event']
-				case res['event']
-				when 'follow'
-					if $my_data && res['source']['id'] != $my_data['id']
-						@growl.notify("Follow: @#{res['source']['screen_name']}", res['source']['name'])
-					end
-				when 'unfollow'
-
-				when 'favorite'
-					if $my_data && res['source']['id'] != $my_data['id']
-						@growl.notify("Favorite: @#{res['source']['screen_name']}", res['target_object']['text'])
-					end
-					Thread.new {
-						@constructor.update_favorited(res, true)
-					}
-					mthd = "show_favorite"
-					argu = res
-				when 'unfavorite'
-					Thread.new {
-						@constructor.update_favorited(res, false)
-					}
-					mthd = "hide_favorite"
-					argu = res
-				else
-
-				end
-			else
-
-			end
-
-			return mthd, argu
-		end
-	end
-
-	class Constructor
-		def initialize
-			@config = App::Config.new
-		end
-
-		def text(res)
-      # Ignore res if res is Array
-      return nil if res.class == Array 
-			res[:tab] = []
-			res[:tab] << "timeline"
-			created_at = DateTime.strptime(res['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
-			res['created_at'] = DateTime._parse(created_at.to_s)
-			res['created_at'].each { |k, v|
-				if v.to_s.length < 2
-					res['created_at'][k] = ("00" + v.to_s)[-2,2]
-				end
-			}
-			res['created_at'][:datetime] = created_at.to_s
-			if res['retweeted_status']
-				retweeted_created_at = DateTime.strptime(res['retweeted_status']['created_at'].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
-				res['retweeted_status']['created_at'] = DateTime._parse(retweeted_created_at.to_s)
-				res['retweeted_status']['created_at'].each { |k, v|
-					if v.to_s.length < 2
-						res['retweeted_status']['created_at'][k] = ("00" + v.to_s)[-2,2]
-					end
-				}
-				res['retweeted_status']['created_at'][:datetime] = retweeted_created_at.to_s
-				if res['user']['id'] == $my_data['id']
-					res['retweeted'] = true
-					res['retweeted_status']['retweeted'] = true
-				end
-			elsif $my_data && res['entities']['user_mentions'].inject([]){ |r, v| r << (v['id'] == $my_data['id']) }.index(true)
-				res[:tab] << "mention"
-			end
-			@config.tab.each { |tab_config|
-				if res['text'] =~ Regexp.new(tab_config['regexp'])
-					res[:tab] << tab_config['bundle']
-				end
-			}
-			res[:tab].each { |tab|
-				if tab == "mention"
-					$res_mention.unshift(res)
-				elsif tab != "timeline"
-					$res_tab[tab] = [] unless $res_tab.key?(tab)
-					$res_tab[tab].unshift(res)
-				end
-			}
-			$res_home.unshift(res)
-			return res
-		end
-
-		def update_favorited(res, boolean)
-			if $my_data && res['source']['id'] == $my_data['id']
-				$res_home.each_with_index { |v, i|
-					if v['id'] == res['target_object']['id']
-						$res_home[i]['favorited'] = boolean
-						break
-					end
-				}
-				$res_mention.each_with_index { |v, i|
-					if v['id'] == res['target_object']['id']
-						$res_mention[i]['favorited'] = boolean
-						break
-					end
-				}
-			end
-		end
-
-		def remove_data(res)
-			$res_home.each_with_index { |v, i|
-				if v['id'] == res['delete']['status']['id']
-					$res_home.delete_at(i)
-					break
-				end
-			}
-			$res_mention.each_with_index { |v, i|
-				if v['id'] == res['delete']['status']['id']
-					$res_mention.delete_at(i)
-					break
-				end
-			}
-			$res_tab.each_with_index { |res_data, j|
-				res_data.each_with_index { |v, i|
-					if v['id'] == res['delete']['status']['id']
-						$res_tab[j].delete_at(i)
-						break
-					end
-				}
-			}
-		end
-	end
-
-	class Receiver
-		def initialize
-			@twitter_api = App::TwitterAPI.new
-			@constructor = App::Constructor.new
-			@config = App::Config.new
-
-
-      @api = Twitter::REST::Client.new do |config|
+    def initialize_twitter
+      @client = Twitter::REST::Client.new do |config|
         config.consumer_key        = CONSUMER_KEY
         config.consumer_secret     = CONSUMER_SECRET
         config.access_token        = ACCESS_TOKEN
         config.access_token_secret = ACCESS_TOKEN_SECRET
       end
-		end
 
-		def configure(argu)
-			return @config.root
-		end
+      @stream_client = Twitter::Streaming::Client.new do |config|
+        config.consumer_key        = CONSUMER_KEY
+        config.consumer_secret     = CONSUMER_SECRET
+        config.access_token        = ACCESS_TOKEN
+        config.access_token_secret = ACCESS_TOKEN_SECRET
+      end
+    end
 
-		def favorite(argu)
-			@api.favorite(argu[0])
-		end
+    def setup_events
+      this = self
 
-		def unfavorite(argu)
-			@api.unfavorite(argu[0])
-		end
+      @accessor.script do
+        event("open") {
+          puts "opened"
+          @th = nil
+        }
 
-		def retweet(argu)
-			@api.retweet(argu[0])
-		end
+        event("load") {
+          puts "loaded"
+          this.on_load()
+          @th = Thread.new() {
+            loop {
+              puts "connecting..."
+              begin
+                this.stream_client.user { |res|
+                  this.on_res(res)
+                }
+              rescue Exception => e
+                puts e
+              end
+              sleep 5
+            }
+          }
+        }
 
-		def destroy(argu)
-			@api.status_destroy(argu[0])
-		end
+        event("close") {
+          @th.kill if @th
+          puts "closed"
+        }
+      end
+    end
 
-		def verify_credentials(argu)
-			if $my_data
-				return $my_data
-			else
-				return verify_credentials_refresh(argu)
-			end
-		end
+    def on_load
+      puts @accessor.tr.call_function("setup_column");
+    end
 
-		def verify_credentials_refresh(argu)
-			$my_data = @twitter_api.verify_credentials
-			return $my_data
-		end
+    def on_res(res)
+      begin
+        if res.class == Twitter::Tweet && res.to_h[:text]
+          puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
+          values = @tweets.add(res)
+          @accessor.tr.call_function_asynchronous("test_showtweet", values)
+        end
+      rescue Exception => e
+        puts e
+        puts e.backtrace.join("\n")
+      end
+    end
 
-		def update(argu)
-			if argu[1]
-				@api.update(argu[0], {:in_reply_to_status_id => argu[1]})
-			else
-				@api.update(argu[0])
-			end
-		end
+    def run
+      @accessor.start
+    end
+  end
 
-		def update_with_media(argu)
-			img_base64 = argu[2].match(/base64,(?<base>.*)$/)[:base]
-			file_name = "img" + argu[1][/\.[^\.]+$/]
-			File.binwrite(file_name, img_base64.unpack('m')[0])
-			if argu[3]
-				@api.update_with_media(argu[0], File.new(file_name), {:in_reply_to_status_id => argu[3]})
-			else
-				@api.update_with_media(argu[0], File.new(file_name))
-			end
-			File.delete(file_name)
-		end
+  class Tweets
+    def initialize
+      puts "loading database..."
+      @db = SQLite3::Database.new("tweets.db")
+      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities]
+      unless @db.execute("SELECT tbl_name FROM sqlite_master WHERE type == 'table'").flatten.include?("tweets")
+        @db.execute("CREATE TABLE tweets(#{@table.join(",")})")
+      end
+    end
 
-		def copy(argu)
-			system("printf '#{argu[0].strip}' | pbcopy");
-		end
+    def add(res_o)
+      if res_o.class == Hash
+        res = res_o
+      else
+        res = res_to_hash(res_o)
+      end
+      values = [
+        res[:id],
+        res[:created_at][:datetime],
+        res[:created_at][:zone],
+        res[:created_at][:hour],
+        res[:created_at][:min],
+        res[:created_at][:sec],
+        res[:created_at][:year],
+        res[:created_at][:mon],
+        res[:created_at][:mday],
+        res[:user][:id],
+        res[:user][:screen_name],
+        res[:user][:name],
+        res[:user][:profile_image_url],
+        res[:text],
+        res[:retweeted_status_exist] ? 1 : 0,
+        res[:retweeted_status_exist] ? res[:retweeted_status][:id] : nil,
+        res[:source],
+        JSON.generate(res[:entities])
+      ]
+      @db.execute("INSERT into tweets values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+      values[14] = res[:retweeted_status_exist]
+      values[0] = values[0].to_s
+      values[9] = values[9].to_s
+      values[17] = res[:entities]
+      if res[:retweeted_status_exist] && @db.execute("SELECT * FROM tweets WHERE id == #{res[:retweeted_status][:id]}").empty?
+        values << add(res[:retweeted_status])
+      else
+        values << nil
+      end
+      return (@table + [:retweeted_values]).zip(values).to_h
+    end
 
-		def home_timeline(argu)
-			from = argu[0]
-			num = argu[1]
-			return $res_home[from, num]
-		end
+    def get(query)
+      values_list = @db.execute("SELECT * FROM tweets #{query}")
+      values_list = values_list.map { |values|
+        values[14] = values[14] == 1 ? true : false
+        values[0] = values[0].to_s
+        values[9] = values[9].to_s
+        values[17] = JSON.parse(values[17])
+        if values[14]
+          retweeted_values = @db.execute("SELECT * FROM tweets WHERE id == #{values[15]}")
+          retweeted_values[14] = retweeted_values[14] == 1 ? true : false
+          retweeted_values[0] = retweeted_values[0].to_s
+          retweeted_values[9] = retweeted_values[9].to_s
+          retweeted_values[17] = JSON.parse(retweeted_values[17])
+          retweeted_values << nil
+          values << (@table + [:retweeted_values]).zip(retweeted_values).to_h
+        else
+          values << nil
+        end
+        (@table + [:retweeted_values]).zip(values).to_h
+      }
+      return values_list
+    end
 
-		def mention_timeline(argu)
-			from = argu[0]
-			num = argu[1]
-			return $res_mention[from, num]
-		end
+    def get_latest(num)
+      return get("ORDER BY -id LIMIT #{num}")
+    end
 
-		def tab_timeline(argu)
-			tab_bundle = argu[0]
-			from = argu[1]
-			num = argu[2]
-			if $res_tab.key?(tab_bundle)
-				return $res_tab[tab_bundle][from, num]
-			else
-				return []
-			end
-		end
+    private
+    def parse_created_at(created_at)
+      created_at_obj = DateTime.strptime(created_at.to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
+      new_created_at = DateTime._parse(created_at_obj.to_s)
+      new_created_at.each { |k, v|
+        v = v.to_s
+        if v.length < 2
+          new_created_at[k] = ("00" + v)[-2,2]
+        else
+          new_created_at[k] = v
+        end
+      }
+      new_created_at[:datetime] = created_at_obj.to_s
+      return new_created_at
+    end
 
-		def filter_timeline(argu)
-			from = argu[0]
-			num = argu[1]
-			filter = argu[2]
-			return_data = []
-			$res_home.each_with_index { |res, i|
-				next if i < from
-				break if i > from + num - 1
-				if res['text'] =~ /#{filter}/
-					return_data << res
-				end
-			}
-			return return_data
-		end
-	end
-
-	class Growl
-		def notify(title, text)
-			puts "Notice: #{title} - #{text}"
-			system("growlnotify -m '#{text}' -t '#{title}'")
-			# system("notify-send -t 5000 '#{title}' '#{text}'")
-		end
-	end
+    def res_to_hash(res_o)
+      res = res_o.to_h
+      res[:created_at] = parse_created_at(res[:created_at])
+      if res[:retweeted_status]
+        res[:retweeted_status][:created_at] = parse_created_at(res[:retweeted_status][:created_at])
+        res[:retweeted_status][:retweeted_status_exist] = false
+        res[:retweeted_status_exist] = true
+      else
+        res[:retweeted_status_exist] = false
+      end
+      return res
+    end
+  end
 end
 
-puts "==== #{DateTime.now}"
-puts "==== constructing instance"
-luminous = App::Accessor.new
-luminous.initialize_data
-luminous.server
+# -- ui --
 
-Signal.trap(:INT){
-puts puts "==== stopping server"
-	luminous.stop_server
-	exit(0)
-}
-
-puts "==== server is running"
-sleep 1
-luminous.client
+app = Lumilly::App.new
+puts "setup events..."
+app.setup_events
+puts "running..."
+app.run

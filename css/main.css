@@ -1,25 +1,28 @@
 body {
-	font-family: 'Lucida Grande';
 	margin: 0;
-	-webkit-user-select: none;
-	   -moz-user-select: none;
-	        user-select: none;
-	cursor: default;
+	height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.container {
-	display: none;
-	/*position: absolute;*/
-	/*z-index: 0;*/
+.column_container {
+	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	/*padding: 10px;*/
+	/*padding: 190px;*/
+	/*height: 100%;*/
+	/*width: 100%;*/
+}
+
+.column {
+	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	/*float: left;*/
+	/*margin-right: 10px;*/
+	height: 100%;
 	width: 100%;
-	/*padding-bottom: 92px;*/
-	/*opacity: 0;*/
-}
-
-.active {
-	display: block;
-	/*z-index: 1;*/
-	/*opacity: 1;*/
+	/*width: 300px;*/
+	/*border: 1px solid rgb(210, 210, 210);*/
 }
 
 .item {
@@ -32,10 +35,6 @@ body {
 	-webkit-box-orient: horizontal;
 	   -moz-box-orient: horizontal;
 	        box-orient: horizontal;
-}
-
-.active .item {
-	/*height: auto;*/
 }
 
 
@@ -72,7 +71,7 @@ body {
 	height: 54px;
 	margin: 0;
 	background-color: rgb(255, 255, 255);
-	border: 1px solid rgb(208, 208, 208);
+	border: 1px solid rgba(0, 0, 0, 0.1);
 	-webkit-box-ordinal-group: 1;
 	   -moz-box-ordinal-group: 1;
 	        box-ordinal-group: 1;
@@ -149,11 +148,15 @@ body {
 	text-decoration: none;
 }
 
+.text a:hover {
+	text-decoration: underline;
+}
+
 .retweeted_status .retweeted_by {
 	color: rgb(255, 255, 255);
 	font-size: 10px;
 	margin-top: 10px;
-	padding: 4px 6px;
+	padding: 5px 6px 3px 6px;
 	background-color: rgba(47, 144, 229, 0.6);
 	border-radius: 3px;
 	float: left;
@@ -180,120 +183,13 @@ body {
 	text-decoration: none;
 }
 
-/* buttons */
-
-.buttons_container {
-	display: none;
-	background-color: rgb(240, 240, 240);
-	border-top: 1px solid rgb(255, 255, 255);
-	position: relative;
-	width: 0;
-	right: 0;
-	-webkit-box-ordinal-group: 2;
-	   -moz-box-ordinal-group: 2;
-	        box-ordinal-group: 2;
-}
-
-.buttons_opened {
-	display: block;
-}
-
-.buttons_wrap {
-	display: none;
-	position: absolute;
-	height: 100%;
-	width: 100%;
-	-webkit-box-pack: center;
-	   -moz-box-pack: center;
-	        box-pack: center;
-	-webkit-box-align: center;
-	   -moz-box-align: center;
-	        box-align: center;
-	-webkit-box-orient: horizontal;
-	   -moz-box-orient: horizontal;
-	        box-orient: horizontal;
-}
-
-.buttons_complete_opened .buttons_wrap {
-	display: -webkit-box;
-	display:    -moz-box;
-	display:         box;
-}
-
-.action_button {
-	text-align: center;
-	margin: 0 13px;
-	color: rgb(100, 100, 100);
-	font-size: 13px;
-}
-
-.action_button:active {
-	opacity: 0.8;
-}
-
-.favorite .favorite_button {
-	color: rgb(255, 148, 0);
-}
-
-.retweet .retweet_button {
-	color: rgb(100, 225, 13);
-}
-
-/* highlight */
-
-.mine .item_container {
-	background-color: rgb(229, 240, 249);
-}
-
-.reply .item_container {
-	background-color: rgb(255, 236, 237);
-}
-
-
-/* selected */
-
-.selected .item_container {
-	background-color: rgb(95, 164, 224);
-}
-
-.selected .screen_name {
-	color: rgb(255, 255, 255);
-}
-
-.selected .name {
-	color: rgb(194, 220, 242);
-}
-
-.selected .text {
-	color: rgb(255, 255, 255);
-}
-
-.selected .text a {
-	color: rgb(255, 255, 255);
-	text-decoration: underline;
-}
-
-.selected.retweeted_status .retweeted_by {
-	color: rgb(95, 164, 224);
-	background-color: rgba(255, 255, 255, 0.8);
-}
-
-.selected .created_at {
-	color: rgb(194, 220, 242);
-}
-
-.selected .via {
-	color: rgb(194, 220, 242);
-}
-
-.selected .via a {
-	color: rgb(194, 220, 242);
+.via a:hover {
 	text-decoration: underline;
 }
 
 /* mini view */
 
-.mini .item_container {
+.mini.item_container {
 	padding: 2px 12px;
 }
 
@@ -359,6 +255,10 @@ body {
 	-webkit-box-flex: 1;
 	   -moz-box-flex: 1;
 	        box-flex: 1;
+}
+
+.mini .text a:hover {
+	text-decoration: none;
 }
 
 .mini br {
@@ -427,175 +327,57 @@ body {
 	background-color: rgb(152, 239, 52);
 }
 
-/* bottom */
+/* selected */
 
-.bottom_wrap {
-	bottom: 0;
-	position: fixed;
-	width: 100%;
-	z-index: 2;
+.selected .item_container {
+	background-color: rgb(95, 164, 224);
 }
 
-.post_field {
-	position: relative;
-	height: 60px;
-	padding: 5px 40px 5px 5px;
-	background-color: rgb(255, 255, 255);
-	/*border-top: 1px solid rgb(50, 50, 50);*/
-	display: -webkit-box;
-	display:    -moz-box;
-	display:         box;
-	-webkit-box-orient: horizontal;
-	   -moz-box-orient: horizontal;
-	        box-orient: horizontal;
-	-webkit-box-sizing: border-box;
-	   -moz-box-sizing: border-box;
-	        box-sizing: border-box;
-	-webkit-box-pack: center;
-	   -moz-box-pack: center;
-	        box-pack: center;
-	-webkit-box-align: center;
-	   -moz-box-align: center;
-	        box-align: center;
-}
-
-.attach_area {
-	height: 100%;
-}
-
-.thumb_wrap {
-	display: none;
-	margin: 2px 5px 2px 3px;
-	position: relative;
-	-webkit-box-ordinal-group: 1;
-	   -moz-box-ordinal-group: 1;
-	        box-ordinal-group: 1;
-}
-
-.thumb {
-	height: 40px;
-	width: 40px;
-}
-
-.clear_button {
-	opacity: 0;
-	position: absolute;
-	height: 40px;
-	width: 40px;
-	top: 0;
-	left: 0;
-	background-color: rgba(0, 0, 0, 0.5);
-	-webkit-transition: all .2s;
-	   -moz-transition: all .2s;
-	    -ms-transition: all .2s;
-	     -o-transition: all .2s;
-	        transition: all .2s;
-}
-
-.clear_button span {
-	position: absolute;
+.selected .screen_name {
 	color: rgb(255, 255, 255);
-	font-size: 12px;
-	bottom: 3px;
-	left: 4px;
 }
 
-.clear_button:hover {
-	opacity: 1;
+.selected .name {
+	color: rgb(194, 220, 242);
 }
 
-.post_textarea {
-	display: block;
-	margin: 0;
-	height: 100%;
-	border: none;
-	resize: none;
-	outline: none;
-	font-size: 13px;
-	overflow: hidden;
-	-webkit-box-ordinal-group: 2;
-	   -moz-box-ordinal-group: 2;
-	        box-ordinal-group: 2;
-	-webkit-box-flex: 1;
-	   -moz-box-flex: 1;
-	        box-flex: 1;
+.selected .text {
+	color: rgb(255, 255, 255);
 }
 
-.post_textarea_count {
-	display: none;
-	position: absolute;
-	font-size: 13px;
-	right: 8px;
-	bottom: 6px;
-	font-weight: bold;
-	color: rgb(130, 130, 130);
+.selected .text a {
+	color: rgb(255, 255, 255);
+	text-decoration: underline;
 }
 
-/* tab */
-
-.tab {
-	position: relative;
-	width: 100%;
-	height: 32px;
-	/*background-color: rgb(80, 80, 80);*/
-	background-color: rgb(240, 240, 240);
-	/*border-top: 1px solid rgb(50, 50, 50);*/
-	-webkit-box-sizing: border-box;
-	   -moz-box-sizing: border-box;
-	        box-sizing: border-box;
+.selected .text a:hover {
+	text-decoration: underline;
 }
 
-.tab_list_box {
-	position: absolute;
-	height: 100%;
-	width: 100%;
-	display: -webkit-box;
-	display:    -moz-box;
-	display:         box;
-	-webkit-box-align: center;
-	   -moz-box-align: center;
-	        box-align: center;
-	-webkit-box-orient: horizontal;
-	   -moz-box-orient: horizontal;
-	        box-orient: horizontal;
-
+.selected .retweeted_status .retweeted_by {
+	color: rgb(95, 164, 224);
+	background-color: rgba(255, 255, 255, 0.8);
 }
 
-.tab_ls {
-	/*border-right: 2px solid rgb(50, 50, 50);*/
-	padding: 0 30px;
-	height: 100%;
-	border-bottom: solid 3px rgba(255, 255, 255, 0);
-	border-top: solid 3px rgba(255, 255, 255, 0);
-	display: -webkit-box;
-	display:    -moz-box;
-	display:         box;
-	-webkit-box-pack: center;
-	   -moz-box-pack: center;
-	        box-pack: center;
-	-webkit-box-align: center;
-	   -moz-box-align: center;
-	        box-align: center;
-	-webkit-box-orient: horizontal;
-	   -moz-box-orient: horizontal;
-	        box-orient: horizontal;
-	-webkit-box-sizing: border-box;
-	   -moz-box-sizing: border-box;
-	        box-sizing: border-box;
+.selected .created_at {
+	color: rgb(194, 220, 242);
 }
 
-.tab_ls:active {
-	opacity: 0.8;
+.selected .via {
+	color: rgb(194, 220, 242);
 }
 
-.active_tab {
-	/*background-color: rgba(0, 0, 0, 0.1);*/
-	border-bottom: solid 3px rgb(121, 121, 121);
+.selected .via a {
+	color: rgb(194, 220, 242);
+	text-decoration: underline;
 }
 
-.tab_label {
-	/*color: rgb(245, 245, 245);*/
-	color: rgb(100, 100, 100);
-	/*text-shadow: 0 1px 1px rgb(30, 30, 30);*/
-	font-size: 11px;
+.selected .img_wrap {
+	border: 1px solid rgba(0, 0, 0, 0);
+}
+
+/* detail overlay */
+
+.tweet_detail_overlay {
+	box-shadow: 0 0 4px 0 rgb(0, 0, 0);
 }

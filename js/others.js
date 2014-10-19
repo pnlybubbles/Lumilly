@@ -31,6 +31,7 @@ String.prototype.match_all = function(exp) {
 	return arr;
 };
 
+
 // unique method
 
 Array.prototype.unique = function() {
@@ -38,6 +39,26 @@ Array.prototype.unique = function() {
 	for (i = 0; i < l; i += 1) o[this[i]] = this[i];
 	for (i in o) r.push(o[i]);
 	return r;
+};
+
+Array.prototype.diff = function(a) {
+	var r = [];
+	for(var i = 0; i < this.length; i++) {
+		if(a.indexOf(this[i]) == -1) {
+			r.push(this[i]);
+		}
+	}
+	return r;
+};
+
+// return last or fisrt element method
+
+Array.prototype.first = function() {
+	return this[0];
+};
+
+Array.prototype.last = function() {
+	return this[this.length - 1];
 };
 
 
@@ -62,6 +83,7 @@ function html_anescape(text) {
 
 
 // compare big integer over 52bit by string
+// a >= b => true
 
 function compareId(a, b) {
 	aa = parseInt(a.slice(-9), 10);
@@ -70,12 +92,14 @@ function compareId(a, b) {
 	bb = parseInt(b.slice(0, -9), 10);
 	if(ab > bb) {
 		return true;
-	} else if(ab == bb) {
+	} else if(ab == bb || (isNaN(ab) === true && isNaN(bb) === true)) {
 		if(aa >= ba) {
 			return true;
 		} else {
 			return false;
 		}
+	} else if(isNaN(ab) === false && isNaN(bb) === true) {
+		return true;
 	} else {
 		return false;
 	}
