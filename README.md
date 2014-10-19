@@ -4,22 +4,23 @@
 
 Twitterクライアント
 
-現在は試作段階ですのでRubyとブラウザがあれば実行できます。(windowsでも動くかも)
+現在は試作段階です。以下の条件があれば実行できます。
 
 #実行
 
-* ブラウザ（Chrome推奨）
-* Ruby2.0以上
-* bundler
+* ブラウザ (Chrome推奨)
+* Ruby2.0以上 (2.1.2推奨)
+* bundler gem
+* SQLite3 (Macだと標準で入っています)
 * Oauth Key
 
 ###gemのインストール
 
-bundler のインストール
+`bundler`のインストール
 
 	gem install bundler
 
-bundlerにてgemをインストール
+`bundler`にてgemをインストール
 
 	cd rb
 	bundle install --path vendor/bundler
@@ -30,7 +31,7 @@ ConsumerKey, AcccessTokenは自分で入れて下さい。
 
 	key_token.rb
 
-というファイルを作成し、２つ上の階層に配置してください。(`../../key_token.rb`)
+というファイルを作成し、`lumilly.rb`と同じ階層に配置してください。(`/rb/key_token.rb`)
 
 ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.rb`に追加して下さい。
 
