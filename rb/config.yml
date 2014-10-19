@@ -1,0 +1,12 @@
+columns:
+  - id: timeline
+    name: Timeline
+    pattern: all
+
+  - id: mention
+    name: Mention
+    pattern: mention
+
+  - id: sample
+    name: Sample
+    pattern: "contain:awa"

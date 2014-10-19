@@ -3,5 +3,6 @@
 /vendor/bundler
 *.lock
 /key_token.rb
+/key_token.yml
 *.db
 *_test.rb

@@ -35,12 +35,13 @@ Methods.prototype = {
   test: function(t) {
     console.log(t);
   },
-  setup_column: function() {
-    this.column_view.new_timeline_column(0, "test_timeline");
-    return "test_timeline column setup";
+  create_timeline_column: function(column) {
+    this.column_view.new_timeline_column(this.column_view.columns.length, column.id);
+    return "created column: " + column.id;
   },
-  test_showtweet: function(values) {
-    this.column_view.columns[0].add_tweet(values);
+  add_tweet: function(column_id, values) {
+    console.log(column_id, values);
+    this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
   }
 };
 
@@ -53,11 +54,17 @@ ColumnView.prototype = {
     this.columns = [];
     this.column_ids = [];
   },
+  index: function(id) {
+    var index = this.column_ids.indexOf(id);
+    return index == -1 ? null : index;
+  },
   new_column: function(index, id) {
-    if(this.columns.length === 0 || this.columns.length < index) {
+    if(this.columns.length === 0 || this.columns.length == index) {
       $(".column_container").append("<div class='column col_" + id + "'></div>");
-    } else {
+    } else if(this.columns.length > index && index >= 0) {
       $(".column:eq(" + index + ")").before("<div class='column col_" + id + "'></div>");
+    } else {
+      throw new Error("Bad index of new column");
     }
   },
   new_timeline_column: function(index, id) {
@@ -235,7 +242,7 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     "%created_at%" : data.mon + "/" + data.mday + " " + data.hour + ":" + data.min + ":" + data.sec,
     // "%created_at%" : data.hour + ":" + data.min + ":" + data.sec,
     "%profile_image_url%" : data.profile_image_url.replace(/_normal/, ""),
-    "%via%" : data.source.replace("rel='nofollow'", "target='_blank'")
+    "%via%" : data.source.replace("href", "target=\"_blank\" href")
   });
   // check mini view to add mini class
   var aditional_class = [];

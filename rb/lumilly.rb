@@ -1,9 +1,9 @@
 require "em-websocket"
 require "json"
+require "yaml"
 require "twitter"
 require "sqlite3"
 require "pp"
-require_relative './key_token.rb'
 
 module Accessor
   class Socket
@@ -118,25 +118,34 @@ module Lumilly
     attr_reader :client, :stream_client
 
     def initialize
-      initialize_twitter()
       @accessor = Accessor::Socket.new
       @tweets = Lumilly::Tweets.new
     end
 
-    def initialize_twitter
+    def initialize_twitter(yaml_dir)
+      raise "Error: setup tokens (key_token.yml not found)" unless File.exist?(File.expand_path(yaml_dir))
+      key_data = YAML.load_file(File.expand_path(yaml_dir))
+
       @client = Twitter::REST::Client.new do |config|
-        config.consumer_key        = CONSUMER_KEY
-        config.consumer_secret     = CONSUMER_SECRET
-        config.access_token        = ACCESS_TOKEN
-        config.access_token_secret = ACCESS_TOKEN_SECRET
+        config.consumer_key        = key_data["consumer_key"]
+        config.consumer_secret     = key_data["consumer_secret"]
+        config.access_token        = key_data["access_token"]
+        config.access_token_secret = key_data["access_token_secret"]
       end
 
       @stream_client = Twitter::Streaming::Client.new do |config|
-        config.consumer_key        = CONSUMER_KEY
-        config.consumer_secret     = CONSUMER_SECRET
-        config.access_token        = ACCESS_TOKEN
-        config.access_token_secret = ACCESS_TOKEN_SECRET
+        config.consumer_key        = key_data["consumer_key"]
+        config.consumer_secret     = key_data["consumer_secret"]
+        config.access_token        = key_data["access_token"]
+        config.access_token_secret = key_data["access_token_secret"]
       end
+
+      @mydata = @client.verify_credentials.to_h
+      p @mydata[:id]
+    end
+
+    def load_config(yaml_dir)
+      @config = YAML.load_file(File.expand_path(yaml_dir))
     end
 
     def setup_events
@@ -174,7 +183,9 @@ module Lumilly
     end
 
     def on_load
-      puts @accessor.tr.call_function("setup_column");
+      @config["columns"].each { |column|
+        puts @accessor.tr.call_function("create_timeline_column", column);
+      }
     end
 
     def on_res(res)
@@ -182,7 +193,18 @@ module Lumilly
         if res.class == Twitter::Tweet && res.to_h[:text]
           puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
           values = @tweets.add(res)
-          @accessor.tr.call_function_asynchronous("test_showtweet", values)
+          @config["columns"].each { |column|
+            check = false
+            case column["pattern"]
+            when "all"
+              check = true
+            when "mention"
+              check = true if values[:in_reply_to_user_id].to_i == @mydata[:id]
+            when /^contain:/
+              check = true if values[:text] =~ /#{column["pattern"].gsub(/^contain:/, "")}/
+            end
+            @accessor.tr.call_function_asynchronous("add_tweet", column["id"], values) if check
+          }
         end
       rescue Exception => e
         puts e
@@ -199,7 +221,7 @@ module Lumilly
     def initialize
       puts "loading database..."
       @db = SQLite3::Database.new("tweets.db")
-      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities]
+      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities, :in_reply_to_status_id, :in_reply_to_user_id]
       unless @db.execute("SELECT tbl_name FROM sqlite_master WHERE type == 'table'").flatten.include?("tweets")
         @db.execute("CREATE TABLE tweets(#{@table.join(",")})")
       end
@@ -229,13 +251,12 @@ module Lumilly
         res[:retweeted_status_exist] ? 1 : 0,
         res[:retweeted_status_exist] ? res[:retweeted_status][:id] : nil,
         res[:source],
-        JSON.generate(res[:entities])
+        JSON.generate(res[:entities]),
+        res[:in_reply_to_status_id],
+        res[:in_reply_to_user_id]
       ]
-      @db.execute("INSERT into tweets values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
-      values[14] = res[:retweeted_status_exist]
-      values[0] = values[0].to_s
-      values[9] = values[9].to_s
-      values[17] = res[:entities]
+      @db.execute("INSERT into tweets values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+      values = adapt_for_json(values)
       if res[:retweeted_status_exist] && @db.execute("SELECT * FROM tweets WHERE id == #{res[:retweeted_status][:id]}").empty?
         values << add(res[:retweeted_status])
       else
@@ -247,16 +268,10 @@ module Lumilly
     def get(query)
       values_list = @db.execute("SELECT * FROM tweets #{query}")
       values_list = values_list.map { |values|
-        values[14] = values[14] == 1 ? true : false
-        values[0] = values[0].to_s
-        values[9] = values[9].to_s
-        values[17] = JSON.parse(values[17])
+        values = adapt_for_json(values)
         if values[14]
           retweeted_values = @db.execute("SELECT * FROM tweets WHERE id == #{values[15]}")
-          retweeted_values[14] = retweeted_values[14] == 1 ? true : false
-          retweeted_values[0] = retweeted_values[0].to_s
-          retweeted_values[9] = retweeted_values[9].to_s
-          retweeted_values[17] = JSON.parse(retweeted_values[17])
+          retweeted_values = adapt_for_json(retweeted_values)
           retweeted_values << nil
           values << (@table + [:retweeted_values]).zip(retweeted_values).to_h
         else
@@ -299,12 +314,25 @@ module Lumilly
       end
       return res
     end
+
+    def adapt_for_json(values)
+      values[14] = values[14] == 1 ? true : false
+      values[0] = values[0].to_s
+      values[9] = values[9].to_s
+      values[18] = values[18].to_s
+      values[19] = values[19].to_s
+      values[17] = JSON.parse(values[17])
+      return values
+    end
   end
 end
 
 # -- ui --
 
 app = Lumilly::App.new
+puts "load preferences..."
+app.initialize_twitter("key_token.yml")
+app.load_config("config.yml")
 puts "setup events..."
 app.setup_events
 puts "running..."
