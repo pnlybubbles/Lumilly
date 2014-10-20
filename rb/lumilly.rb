@@ -117,9 +117,11 @@ module Lumilly
   class App
     attr_reader :client, :stream_client
 
-    def initialize
+    def initialize(token_dir, config_dir)
+      initialize_twitter(token_dir)
+      load_config(config_dir)
       @accessor = Accessor::Socket.new
-      @tweets = Lumilly::Tweets.new
+      @tweets = Lumilly::Tweets.new(@mydata)
     end
 
     def initialize_twitter(yaml_dir)
@@ -140,8 +142,9 @@ module Lumilly
         config.access_token_secret = key_data["access_token_secret"]
       end
 
-      @mydata = @client.verify_credentials.to_h
-      p @mydata[:id]
+      # @mydata = @client.verify_credentials.to_h
+      @mydata = {:id => 322116499}
+      puts "user id: #{@mydata[:id]}"
     end
 
     def load_config(yaml_dir)
@@ -168,7 +171,7 @@ module Lumilly
                   this.on_res(res)
                 }
               rescue Exception => e
-                puts e
+                puts e.to_s
               end
               sleep 5
             }
@@ -186,6 +189,11 @@ module Lumilly
       @config["columns"].each { |column|
         puts @accessor.tr.call_function("create_timeline_column", column);
       }
+      @config["columns"].each { |column|
+        @tweets.get_latest(200, column["pattern"]).reverse.each { |values|
+          @accessor.tr.call_function_asynchronous("add_tweet", column["id"], values)
+        }
+      }
     end
 
     def on_res(res)
@@ -193,15 +201,33 @@ module Lumilly
         if res.class == Twitter::Tweet && res.to_h[:text]
           puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
           values = @tweets.add(res)
+          # p values if values[:retweeted_values]
           @config["columns"].each { |column|
             check = false
             case column["pattern"]
             when "all"
               check = true
             when "mention"
-              check = true if values[:in_reply_to_user_id].to_i == @mydata[:id]
-            when /^contain:/
-              check = true if values[:text] =~ /#{column["pattern"].gsub(/^contain:/, "")}/
+              check = true if values[:mention]
+            else
+              # aaa OR bbb OR ccc OR (ddd AND ggg) OR (eee AND NOT (fff))
+              pattern_query = column["pattern"].gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
+                case word
+                when /^OR$/i
+                  "||"
+                when /^AND$/i
+                  "&&"
+                when /^NOT$/i
+                  "!"
+                when "("
+                  "("
+                when ")"
+                  ")"
+                else
+                  "values[:text] =~ /#{word.gsub('/', '\\/').gsub('#', '\\#')}/" # escape
+                end
+              }.join(" ")
+              check = eval(pattern_query)
             end
             @accessor.tr.call_function_asynchronous("add_tweet", column["id"], values) if check
           }
@@ -218,10 +244,11 @@ module Lumilly
   end
 
   class Tweets
-    def initialize
+    def initialize(mydata)
       puts "loading database..."
       @db = SQLite3::Database.new("tweets.db")
-      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities, :in_reply_to_status_id, :in_reply_to_user_id]
+      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities, :in_reply_to_status_id, :mention]
+      @mydata = mydata
       unless @db.execute("SELECT tbl_name FROM sqlite_master WHERE type == 'table'").flatten.include?("tweets")
         @db.execute("CREATE TABLE tweets(#{@table.join(",")})")
       end
@@ -247,18 +274,23 @@ module Lumilly
         res[:user][:screen_name],
         res[:user][:name],
         res[:user][:profile_image_url],
-        res[:text],
+        res[:retweeted_status_exist] ? res[:retweeted_status][:text] : res[:text],
         res[:retweeted_status_exist] ? 1 : 0,
         res[:retweeted_status_exist] ? res[:retweeted_status][:id] : nil,
         res[:source],
         JSON.generate(res[:entities]),
         res[:in_reply_to_status_id],
-        res[:in_reply_to_user_id]
+        res[:retweeted_status_exist] ? nil : true && res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@mydata[:id]).!.! ? 1 : 0
       ]
       @db.execute("INSERT into tweets values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
       values = adapt_for_json(values)
-      if res[:retweeted_status_exist] && @db.execute("SELECT * FROM tweets WHERE id == #{res[:retweeted_status][:id]}").empty?
-        values << add(res[:retweeted_status])
+      if res[:retweeted_status_exist]
+        retweeted_values = get("WHERE id == #{res[:retweeted_status][:id]}")[0]
+        if retweeted_values
+          values << retweeted_values
+        else
+          values << add(res[:retweeted_status])
+        end
       else
         values << nil
       end
@@ -270,7 +302,7 @@ module Lumilly
       values_list = values_list.map { |values|
         values = adapt_for_json(values)
         if values[14]
-          retweeted_values = @db.execute("SELECT * FROM tweets WHERE id == #{values[15]}")
+          retweeted_values = @db.execute("SELECT * FROM tweets WHERE id == #{values[15]}")[0]
           retweeted_values = adapt_for_json(retweeted_values)
           retweeted_values << nil
           values << (@table + [:retweeted_values]).zip(retweeted_values).to_h
@@ -282,8 +314,33 @@ module Lumilly
       return values_list
     end
 
-    def get_latest(num)
-      return get("ORDER BY -id LIMIT #{num}")
+    def get_latest(num, pattern)
+      query = nil
+      case pattern
+      when "all"
+        query = "ORDER BY -id LIMIT #{num}"
+      when "mention"
+        query = "WHERE mention == 1 ORDER BY -id LIMIT #{num}"
+      else
+        pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
+          case word
+          when /^OR$/i
+            "OR"
+          when /^AND$/i
+            "AND"
+          when /^NOT$/i
+            "NOT"
+          when "("
+            "("
+          when ")"
+            ")"
+          else
+            "text GLOB '*#{word}*'"
+          end
+        }.join(" ")
+        query = "WHERE #{pattern_query} ORDER BY -id LIMIT #{num}"
+      end
+      return get(query)
     end
 
     private
@@ -320,20 +377,31 @@ module Lumilly
       values[0] = values[0].to_s
       values[9] = values[9].to_s
       values[18] = values[18].to_s
-      values[19] = values[19].to_s
+      values[19] = values[19] == 1 ? true : false
       values[17] = JSON.parse(values[17])
       return values
     end
   end
 end
 
+# -- debug --
+
+def a_ry(a)
+  return a.map { |v| v.class == Array ? a_ry(v) : 0 }
+end
+
+def pa(arr)
+  p a_ry(arr)
+end
+
+def ppa(arr)
+  pp a_ry(arr)
+end
+
 # -- ui --
 
-app = Lumilly::App.new
 puts "load preferences..."
-app.initialize_twitter("key_token.yml")
-app.load_config("config.yml")
-puts "setup events..."
+app = Lumilly::App.new("key_token.yml", "config.yml")
 app.setup_events
 puts "running..."
 app.run

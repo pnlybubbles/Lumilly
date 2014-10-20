@@ -9,4 +9,4 @@ columns:
 
   - id: sample
     name: Sample
-    pattern: "contain:awa"
+    pattern: "ごちうさ OR ご注文はうさぎですか OR きんモザ OR きんいろモザイク OR あわあわ"
