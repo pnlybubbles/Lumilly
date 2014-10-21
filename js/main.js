@@ -21,6 +21,7 @@ require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap
 
 function load () {
   var main = new Methods();
+  setup_events();
 }
 
 function Methods () {
@@ -106,7 +107,7 @@ TimelineColumn.prototype = {
     // tweet detail overlay changing
     this.detail_overlay_visible = false;
     this.tableview.cursor.on_change(function() {
-      console.log("on_change");
+      // console.log("on_change");
       // console.log(this.tableview.selected);
       // console.log(this.tableview.selected.length);
       if(this.detail_overlay_visible) {
@@ -125,13 +126,13 @@ TimelineColumn.prototype = {
     // tweet detail overlay visible toggling keybind
     this.tableview.keybind.bind("32", [], function() {
       this.detail_overlay_visible = !this.detail_overlay_visible;
-      console.log(this.detail_overlay_visible);
+      // console.log(this.detail_overlay_visible);
       if(this.detail_overlay_visible) {
-        console.log(this.tableview.selected.length);
+        // console.log(this.tableview.selected.length);
         if(this.tableview.selected.length == 1) {
           var html = makeup_display_html(this.tweets[this.tweet_ids.indexOf(this.tableview.selected[0])], default_templete, false);
-          console.log(this.tweet_detail_overlay);
-          console.log(this.tweet_detail_overlay.html());
+          // console.log(this.tweet_detail_overlay);
+          // console.log(this.tweet_detail_overlay.html());
           if(this.tweet_detail_overlay.html() === "") {
             this.show_detail_overlay(html);
           }
@@ -144,11 +145,11 @@ TimelineColumn.prototype = {
     }, this);
   },
   show_detail_overlay: function(html) {
-    console.log("show");
+    // console.log("show");
     if(this.tweet_detail_overlay.html() === "") {
       this.tweet_detail_overlay.append(html);
       var self = this;
-      console.log(self.tweet_detail_overlay.height() * (-1));
+      // console.log(self.tweet_detail_overlay.height() * (-1));
       this.tweet_detail_overlay.css({
         top : self.tweet_detail_overlay.height() * (-1)
       });
@@ -158,10 +159,10 @@ TimelineColumn.prototype = {
     }
   },
   hide_detail_overlay: function() {
-    console.log("hide");
+    // console.log("hide");
     if(this.tweet_detail_overlay.html() !== "") {
       var self = this;
-      console.log(self.tweet_detail_overlay.height() * (-1));
+      // console.log(self.tweet_detail_overlay.height() * (-1));
       this.tweet_detail_overlay.stop(true, false).animate({
         top : self.tweet_detail_overlay.height() * (-1)
       }, 160, 'easeOutExpo', function() {
@@ -217,6 +218,14 @@ TimelineColumn.prototype = {
     this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + values.id);
   }
 };
+
+function setup_events () {
+  text_field_binding = new KeyEvents($(".text_field"));
+  $(".text_field").on("focus", function() {
+    text_field_binding.focus();
+    console.log("focused: text_field");
+  });
+}
 
 function makeup_display_html (base_data, html_templete, mini_view) {
   if(mini_view === undefined) {

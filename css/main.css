@@ -362,8 +362,12 @@ body {
 
 /* selected */
 
-.selected .item_container {
+.focused .selected .item_container {
 	background-color: rgb(95, 164, 224);
+}
+
+.selected .item_container {
+	background-color: rgb(183, 206, 228);
 }
 
 .selected .screen_name {
