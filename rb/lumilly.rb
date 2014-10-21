@@ -178,6 +178,13 @@ module Lumilly
           }
         }
 
+        event("update_tweet") { |text|
+          puts "==== update_tweet: #{text}"
+          this.instance_eval {
+            @client.update(text)
+          }
+        }
+
         event("close") {
           @th.kill if @th
           puts "closed"

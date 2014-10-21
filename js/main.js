@@ -16,12 +16,20 @@ requirejs.config({
 });
 
 require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap.min', 'CSSPlugin.min', 'jquery.lib', 'others', 'key-events', 'tableview', 'ui-accessor', 'html_templete'], function(){
-  load();
+  setup();
 });
 
-function load () {
+function setup () {
   var main = new Methods();
-  setup_events();
+  text_field_binding = new KeyEvents($(".text_field"));
+  $(".text_field").on("focus", function() {
+    text_field_binding.focus();
+    console.log("focused: text_field");
+  });
+  text_field_binding.bind("13", ["c"], function() {
+    main.accessor.call_method_asynchronous("update_tweet", $(".text_field").val());
+    $(".text_field").val("");
+  });
 }
 
 function Methods () {
@@ -218,14 +226,6 @@ TimelineColumn.prototype = {
     this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + values.id);
   }
 };
-
-function setup_events () {
-  text_field_binding = new KeyEvents($(".text_field"));
-  $(".text_field").on("focus", function() {
-    text_field_binding.focus();
-    console.log("focused: text_field");
-  });
-}
 
 function makeup_display_html (base_data, html_templete, mini_view) {
   if(mini_view === undefined) {

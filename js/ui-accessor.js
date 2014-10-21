@@ -30,7 +30,7 @@ Accessor.prototype = {
   },
   send_ws: function(msg) {
     msg["from"] = "client";
-    // console.log(msg);
+    console.log(msg);
     this.ws.send(JSON.stringify(msg));
   },
   tell: function(req, callback) { // callback not recommend
@@ -95,6 +95,6 @@ Accessor.prototype = {
       "name" : method_name,
       "argu" : argu
     };
-    tell(req);
+    this.tell(req);
   }
 };
