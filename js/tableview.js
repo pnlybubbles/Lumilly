@@ -16,7 +16,7 @@ TableView.prototype = {
     this.obj.append('<div class="item_view"></div>');
     this.view = this.obj.find(".item_view");
     this.view_id = String(view_id);
-    this.obj.addClass(this.view_id);
+    this.obj.addClass("table_" + this.view_id);
     this.view.css({
       "height" : "100%",
       "width" : "auto",
@@ -192,7 +192,7 @@ TableView.prototype = {
   },
   visible: function(id_index) {
     var index = this.index(id_index);
-    console.log(index);
+    // console.log(index);
     if(index !== undefined) {
       if(this[index].elm === undefined && this.visibled.indexOf(this[index].id) == -1) {
         // console.log(this.html);
@@ -309,6 +309,14 @@ TableView.prototype = {
     this.view.bind("mousedown", {this_obj: this}, function(event) {
       event.data.this_obj.keybind.focus();
     });
+    this.keybind.on_focus(function() {
+      console.log("focused :", this.view_id);
+      this.obj.addClass("focused");
+    }, this);
+    this.keybind.on_blur(function() {
+      console.log("blured :", this.view_id);
+      this.obj.removeClass("focused");
+    }, this);
     // mouse wheel
     this.view.bind("mousewheel", {this_obj: this}, function(event, delta) {
       if(delta > 0) {
@@ -372,6 +380,7 @@ TableView.prototype = {
       "width" : "17px",
       "padding" : "3px",
       "border-left" : "1 solid rgb(210, 210, 210)",
+      "border-right" : "1 solid rgb(210, 210, 210)",
       "background-color" : "rgb(255, 255, 255)",
       "z-index" : "10"
     });
@@ -448,17 +457,17 @@ TableView.prototype = {
     with_animate = false;
     if(with_animate) {
       var now_calc_scrolltop = first_item_index * item_height + this.view.scrollTop();
-      console.log(now_calc_scrolltop, calc_scrolltop);
+      // console.log(now_calc_scrolltop, calc_scrolltop);
       if(now_calc_scrolltop > calc_scrolltop) {
-        console.log("up");
+        // console.log("up");
         this.view.scrollTop(this.view.scrollTop()); //
         move_item_index_arr.diff(item_index_arr).forEach(function(v) {
           if(this[v]) { this[v].visible(); }
         }, this);
       } else if(now_calc_scrolltop < calc_scrolltop) {
-        console.log("down");
+        // console.log("down");
       } else {
-        console.log("fix");
+        // console.log("fix");
       }
     } else {
       item_index_arr.diff(move_item_index_arr).forEach(function(v) {
@@ -484,7 +493,7 @@ TableView.prototype = {
         var distance_to_base_item = abs(scroll_top + this.view.height() / 2 - (scroll_top + base_item.elm.offset().top - this.view.offset().top + base_item_height / 2)) - base_item_height / 2;
         if(distance_to_base_item > this.config.visible_limit) {
           // console.log("invisible: " + distance_to_base_item);
-          console.log("invisible");
+          // console.log("invisible");
           base_item.invisible();
           if(v == -1) {
             this.view.scrollTop(scroll_top - base_item_height);
@@ -492,13 +501,13 @@ TableView.prototype = {
         } else if(base_item.index() !== (v == -1 ? 0 : this.length - 1) && distance_to_base_item + base_item_height < this.config.visible_limit) {
           // console.log("visible: " + (distance_to_base_item + base_item_height));
           // console.log(base_item.index());
-          console.log("visible");
+          // console.log("visible");
           this.item(base_item.index() + v).visible();
           if(v == -1) {
             this.view.scrollTop(scroll_top + base_item_height);
           }
         } else {
-          console.log("no");
+          // console.log("no");
           break;
         }
       }

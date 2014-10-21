@@ -69,6 +69,18 @@ function abs (x) {
 }
 
 
+// check Number strictly
+
+function isNumber(x){
+  if(typeof(x) != 'number' && typeof(x) != 'string') {
+    return false;
+  } else {
+    return (x == parseFloat(x) && isFinite(x));
+  }
+}
+
+
+
 // anescape html method
 
 function html_anescape(text) {

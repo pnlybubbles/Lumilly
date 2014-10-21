@@ -47,7 +47,7 @@ Accessor.prototype = {
   },
   get: function(req) {
     if(req.from == "server") {
-      console.log(req);
+      // console.log(req);
       var e = req.content;
       switch(req.type) {
         case "event":

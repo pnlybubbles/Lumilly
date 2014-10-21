@@ -40,7 +40,7 @@ Methods.prototype = {
     return "created column: " + column.id;
   },
   add_tweet: function(column_id, values) {
-    console.log(column_id, values);
+    // console.log(column_id, values);
     this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
   }
 };
@@ -81,7 +81,8 @@ function TimelineColumn () {
 TimelineColumn.prototype = {
   initialize: function(id) {
     this.column = $(".col_" + id);
-    this.tableview = new TableView(this.column, id);
+    this.column.append("<div class='table_view'></div>");
+    this.tableview = new TableView(this.column.find(".table_view"), id);
     this.tableviews_id = id;
     this.tweets = [];
     this.tweet_ids = [];
@@ -92,10 +93,15 @@ TimelineColumn.prototype = {
       "width" : "100%",
       "position" : "absolute",
       "top" : "0",
+      "left" : "0",
+      "right" : "0",
       "box-sizing" : "border-box",
       "z-index" : "0",
       "padding-right" : "17px"
       // "display" : "none"
+    });
+    this.column.css({
+      "position" : "relative"
     });
     // tweet detail overlay changing
     this.detail_overlay_visible = false;
@@ -119,9 +125,13 @@ TimelineColumn.prototype = {
     // tweet detail overlay visible toggling keybind
     this.tableview.keybind.bind("32", [], function() {
       this.detail_overlay_visible = !this.detail_overlay_visible;
+      console.log(this.detail_overlay_visible);
       if(this.detail_overlay_visible) {
+        console.log(this.tableview.selected.length);
         if(this.tableview.selected.length == 1) {
           var html = makeup_display_html(this.tweets[this.tweet_ids.indexOf(this.tableview.selected[0])], default_templete, false);
+          console.log(this.tweet_detail_overlay);
+          console.log(this.tweet_detail_overlay.html());
           if(this.tweet_detail_overlay.html() === "") {
             this.show_detail_overlay(html);
           }
@@ -134,6 +144,7 @@ TimelineColumn.prototype = {
     }, this);
   },
   show_detail_overlay: function(html) {
+    console.log("show");
     if(this.tweet_detail_overlay.html() === "") {
       this.tweet_detail_overlay.append(html);
       var self = this;
@@ -147,6 +158,7 @@ TimelineColumn.prototype = {
     }
   },
   hide_detail_overlay: function() {
+    console.log("hide");
     if(this.tweet_detail_overlay.html() !== "") {
       var self = this;
       console.log(self.tweet_detail_overlay.height() * (-1));
@@ -180,7 +192,7 @@ TimelineColumn.prototype = {
       reversed_tweet_ids.reverse();
       $.each(reversed_tweet_ids, function(i, id) {
         // var id_ = values.retweeted_status ? values.retweeted_status.id : values.id;
-        console.log(values.id, id, compareId(values.id, id));
+        // console.log(values.id, id, compareId(values.id, id));
         // console.log(id_, id, compareId(id_, id));
         // if(compareId(id_, id)) {
         if(compareId(values.id, id)) {
