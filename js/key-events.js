@@ -20,7 +20,7 @@ KeyEvents.prototype = {
     KeyEvents.listeners.push(jquery_obj);
     KeyEvents.binding.push({});
     KeyEvents.peculiar_events.push({});
-    KeyEvents.focused = KeyEvents.listeners.length - 1;
+    // KeyEvents.focused = KeyEvents.listeners.length - 1;
   },
   bind: function(key_code, with_key, func, this_obj) {
     if(with_key.join().replace(/[acms]*/, "") !== "") {
@@ -93,13 +93,13 @@ KeyEvents.focus = function(jquery_obj_index) {
       }
     });
   }
-  if(focus_index !== null && focus_index != KeyEvents.focused) {
+  if(focus_index !== null && focus_index !== KeyEvents.focused) {
     var blur_index = KeyEvents.focused;
     KeyEvents.focused = focus_index;
-    if(KeyEvents.peculiar_events[blur_index]["blur"]) {
+    if(isNumber(blur_index) && KeyEvents.peculiar_events[blur_index]["blur"]) {
       KeyEvents.peculiar_events[blur_index]["blur"]["func"].apply(KeyEvents.peculiar_events[blur_index]["blur"]["this"]);
     }
-    if(KeyEvents.peculiar_events[focus_index]["focus"]) {
+    if(isNumber(focus_index) && KeyEvents.peculiar_events[focus_index]["focus"]) {
       KeyEvents.peculiar_events[focus_index]["focus"]["func"].apply(KeyEvents.peculiar_events[focus_index]["focus"]["this"]);
     }
     return true;
