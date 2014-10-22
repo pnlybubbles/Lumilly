@@ -85,7 +85,7 @@ Accessor.prototype = {
       }
     }
   },
-  call_method_asynchronous: function(method_name, argu) {
+  call_method: function(method_name, argu) {
     if(argu === null || argu === undefined) {
       argu = [];
     } else if(!(argu instanceof Array)) {

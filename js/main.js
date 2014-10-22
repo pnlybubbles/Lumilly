@@ -27,7 +27,7 @@ function setup () {
     console.log("focused: text_field");
   });
   text_field_binding.bind("13", ["c"], function() {
-    main.accessor.call_method_asynchronous("update_tweet", $(".text_field").val());
+    main.accessor.call_method("update_tweet", $(".text_field").val());
     $(".text_field").val("");
   });
 }

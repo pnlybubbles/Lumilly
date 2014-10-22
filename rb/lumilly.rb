@@ -13,14 +13,15 @@ module Accessor
       @tr = nil
       @script = nil
       @debug = debug
+      @transfer = nil
     end
 
     def start
       EM::WebSocket.start(:host => "localhost", :port => 8080, :debug => @debug) do |ws|
         ws.onopen {
           @tr = Transfer.new(ws)
-          @tr.instance_eval(&@script)
-          @tr.send("evt_open", nil)
+          @transfer.call(@tr)
+          @tr.call_event("open", [])
         }
 
         ws.onmessage { |msg|
@@ -28,13 +29,14 @@ module Accessor
         }
 
         ws.onclose {
-          @tr.send("evt_close", nil)
+          @tr.call_event("close", [])
+          @tr = nil
         }
       end
     end
 
-    def script(&blk)
-      @script = blk
+    def transfer(&bl)
+      @transfer = bl
     end
   end
 
@@ -42,12 +44,15 @@ module Accessor
     def initialize(ws)
       @ws = ws
       @callback_queue = {}
+      @events = {}
     end
 
-    def send_ws(msg)
-      msg["from"] = "server"
-      # pp msg
-      @ws.send(JSON.generate(msg).to_s)
+    def event(event_name, &bl)
+      @events[event_name] = bl
+    end
+
+    def call_event(event_name, argu)
+      return @events[event_name].call(*argu)
     end
 
     def tell(req, *callback)
@@ -70,7 +75,7 @@ module Accessor
             case req["type"]
             when "event"
               argu = e["argu"].nil? ? [] : (e["argu"].class == Array ? e["argu"] : [e["argu"]])
-              ret = self.send("evt_#{e['name']}", *argu)
+              ret = call_event(e["name"], argu)
               if req["callback_id"]
                 msg = {"type" => "callback", "content" => {"return" => ret}, "callback_id" => req["callback_id"]}
                 send_ws(msg)
@@ -86,29 +91,22 @@ module Accessor
       }
     end
 
-    def event(event_name)
-      raise "Error: no block given." unless block_given?
-      self.class.class_eval do
-        define_method("evt_#{event_name}") { |*argu|
-          yield(*argu)
-        }
+    def call_function(func_name, argu, *asynchronous)
+      argu = argu.nil? ? [] : (argu.class == Array ? argu : [argu])
+      msg = {"name" => func_name, "argu" => argu}
+      if asynchronous[0]
+        tell(msg)
+        return nil
+      else
+        return tell(msg, true).pop
       end
     end
 
-    def call_function(func_name, *argu)
-      argu = argu.nil? ? [] : (argu.class == Array ? argu : [argu])
-      msg = {"name" => func_name, "argu" => argu}
-      return tell(msg, true).pop
-    end
-
-    def call_function_asynchronous(func_name, *argu)
-      argu = argu.nil? ? [] : (argu.class == Array ? argu : [argu])
-      msg = {"name" => func_name, "argu" => argu}
-      tell(msg)
-    end
-
-    def method_missing(meth, *args, &blk)
-      puts "method_missing : #{meth}"
+    private
+    def send_ws(msg)
+      msg["from"] = "server"
+      # pp msg
+      @ws.send(JSON.generate(msg).to_s)
     end
   end
 end
@@ -122,6 +120,7 @@ module Lumilly
       load_config(config_dir)
       @accessor = Accessor::Socket.new
       @tweets = Lumilly::Tweets.new(@mydata)
+      start_streaming()
     end
 
     def initialize_twitter(yaml_dir)
@@ -152,53 +151,46 @@ module Lumilly
     end
 
     def setup_events
-      this = self
-
-      @accessor.script do
-        event("open") {
+      @accessor.transfer { |tr|
+        tr.event("open") {
           puts "opened"
-          @th = nil
         }
 
-        event("load") {
+        tr.event("load") {
           puts "loaded"
-          this.on_load()
-          @th = Thread.new() {
-            loop {
-              puts "connecting..."
-              begin
-                this.stream_client.user { |res|
-                  this.on_res(res)
-                }
-              rescue Exception => e
-                puts e.to_s
-              end
-              sleep 5
+          @config["columns"].each { |column|
+            puts @accessor.tr.call_function("create_timeline_column", column);
+          }
+          @config["columns"].each { |column|
+            @tweets.get_latest(100, column["pattern"]).reverse.each { |values|
+              tr.call_function("add_tweet", [column["id"], values], true)
             }
           }
         }
 
-        event("update_tweet") { |text|
+        tr.event("update_tweet") { |text|
           puts "==== update_tweet: #{text}"
-          this.instance_eval {
-            @client.update(text)
-          }
+          @client.update(text)
         }
 
-        event("close") {
-          @th.kill if @th
+        tr.event("close") {
           puts "closed"
         }
-      end
+      }
     end
 
-    def on_load
-      @config["columns"].each { |column|
-        puts @accessor.tr.call_function("create_timeline_column", column);
-      }
-      @config["columns"].each { |column|
-        @tweets.get_latest(200, column["pattern"]).reverse.each { |values|
-          @accessor.tr.call_function_asynchronous("add_tweet", column["id"], values)
+    def start_streaming
+      Thread.new() {
+        loop {
+          puts "streaming connecting..."
+          begin
+            @stream_client.user { |res|
+              on_res(res)
+            }
+          rescue Exception => e
+            puts e.to_s
+          end
+          sleep 5
         }
       }
     end
@@ -236,7 +228,7 @@ module Lumilly
               }.join(" ")
               check = eval(pattern_query)
             end
-            @accessor.tr.call_function_asynchronous("add_tweet", column["id"], values) if check
+            @accessor.tr.call_function("add_tweet", [column["id"], values], true) if @accessor.tr && check
           }
         end
       rescue Exception => e
@@ -410,5 +402,5 @@ end
 puts "load preferences..."
 app = Lumilly::App.new("key_token.yml", "config.yml")
 app.setup_events
-puts "running..."
+puts "accessor running..."
 app.run
