@@ -97,8 +97,8 @@ KeyEvents.focus = function(id_index) {
   if(focus_index !== null && focus_index !== KeyEvents.focused) {
     var blur_index = KeyEvents.focused;
     KeyEvents.focused = focus_index;
-    console.log("focus : " + KeyEvents.listeners[focus_index]);
-    console.log("blur : " + KeyEvents.listeners[blur_index]);
+    // console.log("focus : " + KeyEvents.listeners[focus_index]);
+    // console.log("blur : " + KeyEvents.listeners[blur_index]);
     // console.log(KeyEvents.global_peculiar_event);
     if(isNumber(blur_index)) {
       if(KeyEvents.peculiar_events[blur_index]["blur"]) {

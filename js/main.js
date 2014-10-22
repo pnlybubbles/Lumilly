@@ -81,14 +81,14 @@ function event_setup (main) {
         var tweet = column.tweets[column.index(id)];
         var base_tweet = null;
         if(tweet.retweeted) {
-          base_tweet = tweet.retweeted_status;
+          base_tweet = tweet.retweeted_values;
         } else {
           base_tweet = tweet;
         }
         in_reply_to_tweets.push(base_tweet);
       });
-      in_reply_to_tweets = in_reply_to_tweets.unique();
-      $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).join(" @") + " " + $(".text_field").val());
+      console.log(in_reply_to_tweets);
+      $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_field").val());
       in_reply_to["screen_name"] = in_reply_to_tweets.first().screen_name;
       in_reply_to["id"] = in_reply_to_tweets.first().id;
       KeyEvents.focus("compose_field");
