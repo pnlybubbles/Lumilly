@@ -272,7 +272,7 @@ TableView.prototype = {
     }
   },
   initialize_events: function() {
-    this.keybind = new KeyEvents(this.view);
+    this.keybind = new KeyEvents("table_" + this.view_id);
     // cross key up
     this.keybind.bind("38", [], function() {
       this.cursor.prev();
@@ -310,11 +310,9 @@ TableView.prototype = {
       event.data.this_obj.keybind.focus();
     });
     this.keybind.on_focus(function() {
-      console.log("focused :", this.view_id);
       this.obj.addClass("focused");
     }, this);
     this.keybind.on_blur(function() {
-      console.log("blured :", this.view_id);
       this.obj.removeClass("focused");
     }, this);
     // mouse wheel

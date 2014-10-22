@@ -19,16 +19,81 @@ require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap
   setup();
 });
 
+// js libs ready
 function setup () {
   var main = new Methods();
-  text_field_binding = new KeyEvents($(".text_field"));
-  $(".text_field").on("focus", function() {
-    text_field_binding.focus();
-    console.log("focused: text_field");
+}
+
+// gui initialize done
+function event_setup (main) {
+  var before_focused_column = null;
+  KeyEvents.on_focus(function(blur_id) {
+    if(blur_id && blur_id.match(/table_/) !== null) {
+      before_focused_column = blur_id;
+    }
   });
-  text_field_binding.bind("13", ["c"], function() {
-    main.accessor.call_method("update_tweet", $(".text_field").val());
-    $(".text_field").val("");
+  main.column_view.columns.first().tableview.keybind.focus();
+  var text_field_keybind = new KeyEvents("compose_field");
+  $(".text_field").on("focus", function() {
+    text_field_keybind.focus();
+  });
+  text_field_keybind.on_focus(function() {
+    $(".text_field").focus();
+  });
+  text_field_keybind.on_blur(function() {
+    $(".text_field").blur();
+  });
+  text_field_keybind.bind("13", ["c"], function() {
+    var text = $(".text_field").val();
+    var count = check_update_count(text, false);
+    if(count <= 140 && count !== 0) {
+      var in_reply_to_id = null;
+      if(in_reply_to["screen_name"]) {
+        if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
+          in_reply_to_id = in_reply_to["id"];
+        }
+      }
+      $(".text_field").val("");
+      main.accessor.call_method("update_tweet", [text, in_reply_to_id]);
+      in_reply_to = {
+        "id" : null,
+        "screen_name" : null
+      };
+    }
+  });
+  text_field_keybind.bind("9", [], function() {
+    if(before_focused_column) {
+      KeyEvents.focus(before_focused_column);
+    }
+  });
+  var in_reply_to = {
+    "id" : null,
+    "screen_name" : null
+  };
+  $.each(main.column_view.columns, function(i, column) {
+    var tv = column.tableview;
+    tv.keybind.bind("9", [], function() {
+      KeyEvents.focus("compose_field");
+    });
+    tv.keybind.bind("13", [], function() {
+      var in_reply_to_tweets = [];
+      $.each(tv.selected, function(i, id) {
+        var tweet = column.tweets[column.index(id)];
+        var base_tweet = null;
+        if(tweet.retweeted) {
+          base_tweet = tweet.retweeted_status;
+        } else {
+          base_tweet = tweet;
+        }
+        in_reply_to_tweets.push(base_tweet);
+      });
+      in_reply_to_tweets = in_reply_to_tweets.unique();
+      $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).join(" @") + " " + $(".text_field").val());
+      in_reply_to["screen_name"] = in_reply_to_tweets.first().screen_name;
+      in_reply_to["id"] = in_reply_to_tweets.first().id;
+      KeyEvents.focus("compose_field");
+      $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
+    });
   });
 }
 
@@ -47,6 +112,9 @@ Methods.prototype = {
   create_timeline_column: function(column) {
     this.column_view.new_timeline_column(this.column_view.columns.length, column.id);
     return "created column: " + column.id;
+  },
+  gui_initialize_done: function() {
+    event_setup(this);
   },
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
@@ -192,38 +260,49 @@ TimelineColumn.prototype = {
     var self = this;
     // tweets will be automatically sorted by id
     var index = null;
+    var utid = values.id;
+    var tid = values.retweeted ? values.retweeted_id : values.id;
     if(this.tweet_ids.length === 0) {
       // console.log(0);
       index = 0;
-      self.tableview.insert_last(html, "col_" + self.tableviews_id + "_utid_" + values.id, ["utid_" + values.id, "tid_" + values.id]);
+      self.tableview.insert_last(html, "col_" + self.tableviews_id + "_utid_" + utid, ["utid_" + utid, "tid_" + tid]);
     } else {
       var reversed_tweet_ids = $.extend(true, [], this.tweet_ids);
       reversed_tweet_ids.reverse();
       $.each(reversed_tweet_ids, function(i, id) {
-        // var id_ = values.retweeted_status ? values.retweeted_status.id : values.id;
-        // console.log(values.id, id, compareId(values.id, id));
+        // var id_ = values.retweeted_status ? values.retweeted_status.id : utid;
+        // console.log(utid, id, compareId(utid, id));
         // console.log(id_, id, compareId(id_, id));
         // if(compareId(id_, id)) {
-        if(compareId(values.id, id)) {
+        if(compareId(utid, id)) {
           if(i === 0) {
             // console.log(self.tweet_ids.length);
             index = self.tweet_ids.length;
-            self.tableview.insert_last(html, "col_" + self.tableviews_id + "_utid_" + values.id, ["utid_" + values.id, "tid_" + values.id]);
+            self.tableview.insert_last(html, "col_" + self.tableviews_id + "_utid_" + utid, ["utid_" + utid, "tid_" + tid]);
           } else {
             // console.log(self.tweet_ids.length - i);
             index = self.tweet_ids.length - i;
-            self.tableview.insert(html, "col_" + self.tableviews_id + "_utid_" + values.id, index, ["utid_" + values.id, "tid_" + values.id]);
+            self.tableview.insert(html, "col_" + self.tableviews_id + "_utid_" + utid, index, ["utid_" + utid, "tid_" + tid]);
           }
           return false;
         } else if(i == self.tweet_ids.length - 1) {
           // console.log(0);
           index = 0;
-          self.tableview.insert(html, "col_" + self.tableviews_id + "_utid_" + values.id, index, ["utid_" + values.id, "tid_" + values.id]);
+          self.tableview.insert(html, "col_" + self.tableviews_id + "_utid_" + utid, index, ["utid_" + utid, "tid_" + tid]);
         }
       });
     }
     this.tweets.splice(index, 0, values);
-    this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + values.id);
+    this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + utid);
+  },
+  index: function(id_index) {
+    var index = id_index;
+    if(id_index !== parseInt(id_index, 10)) {
+      index = this.tweet_ids.indexOf(id_index);
+    } else if(index < 0 || this.tweet_ids.length - 1 < index) {
+      index = undefined;
+    }
+    return index == -1 ? undefined : index;
   }
 };
 

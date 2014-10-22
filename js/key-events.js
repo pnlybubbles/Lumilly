@@ -14,10 +14,11 @@ KeyEvents.peculiar_events = [];
 
 
 KeyEvents.prototype = {
-  initialize: function(jquery_obj) {
-    this.listener_obj = jquery_obj;
+  initialize: function(listener_id) {
+    // console.log(listener_id);
+    this.listener_obj = listener_id;
     this.index = KeyEvents.listeners.length;
-    KeyEvents.listeners.push(jquery_obj);
+    KeyEvents.listeners.push(listener_id);
     KeyEvents.binding.push({});
     KeyEvents.peculiar_events.push({});
     // KeyEvents.focused = KeyEvents.listeners.length - 1;
@@ -81,13 +82,13 @@ KeyEvents.set_event = function() {
   });
 };
 
-KeyEvents.focus = function(jquery_obj_index) {
+KeyEvents.focus = function(id_index) {
   var focus_index = null;
-  if(isNumber(jquery_obj_index)) {
-    focus_index = jquery_obj_index;
-  } else if (jquery_obj_index instanceof jQuery) {
+  if(isNumber(id_index)) {
+    focus_index = id_index;
+  } else if (typeof id_index == "string") {
     $.each(KeyEvents.listeners, function(i, listener_obj) {
-      if(listener_obj.get(0) == jquery_obj_index.get(0)) {
+      if(listener_obj == id_index) {
         focus_index = i;
         return false;
       }
@@ -96,16 +97,45 @@ KeyEvents.focus = function(jquery_obj_index) {
   if(focus_index !== null && focus_index !== KeyEvents.focused) {
     var blur_index = KeyEvents.focused;
     KeyEvents.focused = focus_index;
-    if(isNumber(blur_index) && KeyEvents.peculiar_events[blur_index]["blur"]) {
-      KeyEvents.peculiar_events[blur_index]["blur"]["func"].apply(KeyEvents.peculiar_events[blur_index]["blur"]["this"]);
+    console.log("focus : " + KeyEvents.listeners[focus_index]);
+    console.log("blur : " + KeyEvents.listeners[blur_index]);
+    // console.log(KeyEvents.global_peculiar_event);
+    if(isNumber(blur_index)) {
+      if(KeyEvents.peculiar_events[blur_index]["blur"]) {
+        KeyEvents.peculiar_events[blur_index]["blur"]["func"].apply(KeyEvents.peculiar_events[blur_index]["blur"]["this"], [KeyEvents.listeners[focus_index]]);
+      }
+      if(KeyEvents.global_peculiar_event["blur"]) {
+        KeyEvents.global_peculiar_event["blur"]["func"].apply(KeyEvents.global_peculiar_event["blur"]["this"], [KeyEvents.listeners[focus_index]]);
+      }
     }
-    if(isNumber(focus_index) && KeyEvents.peculiar_events[focus_index]["focus"]) {
-      KeyEvents.peculiar_events[focus_index]["focus"]["func"].apply(KeyEvents.peculiar_events[focus_index]["focus"]["this"]);
+    if(isNumber(focus_index)) {
+      if(KeyEvents.peculiar_events[focus_index]["focus"]) {
+        KeyEvents.peculiar_events[focus_index]["focus"]["func"].apply(KeyEvents.peculiar_events[focus_index]["focus"]["this"], [KeyEvents.listeners[blur_index]]);
+      }
+      if(KeyEvents.global_peculiar_event["focus"]) {
+        KeyEvents.global_peculiar_event["focus"]["func"].apply(KeyEvents.global_peculiar_event["focus"]["this"], [KeyEvents.listeners[blur_index]]);
+      }
     }
     return true;
   } else {
     return false;
   }
+};
+
+KeyEvents.global_peculiar_event = {};
+
+KeyEvents.on_focus = function(func, this_obj) {
+  // console.log("global on focus");
+  KeyEvents.global_peculiar_event["focus"] = {};
+  KeyEvents.global_peculiar_event["focus"]["func"] = func;
+  KeyEvents.global_peculiar_event["focus"]["this"] = this_obj;
+};
+
+KeyEvents.on_blur = function(func, this_obj) {
+  // console.log("global on blur");
+  KeyEvents.global_peculiar_event["blur"] = {};
+  KeyEvents.global_peculiar_event["blur"]["func"] = func;
+  KeyEvents.global_peculiar_event["blur"]["this"] = this_obj;
 };
 
 KeyEvents.set_event();

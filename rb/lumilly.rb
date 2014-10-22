@@ -162,15 +162,20 @@ module Lumilly
             puts @accessor.tr.call_function("create_timeline_column", column);
           }
           @config["columns"].each { |column|
-            @tweets.get_latest(100, column["pattern"]).reverse.each { |values|
+            @tweets.get_latest(50, column["pattern"]).reverse.each { |values|
               tr.call_function("add_tweet", [column["id"], values], true)
             }
           }
+          tr.call_function("gui_initialize_done", [])
         }
 
-        tr.event("update_tweet") { |text|
-          puts "==== update_tweet: #{text}"
-          @client.update(text)
+        tr.event("update_tweet") { |text, in_reply_to_status_id|
+          puts "==== update_tweet: #{text}  reply_to: #{in_reply_to_status_id}"
+          if in_reply_to_status_id
+            @client.update(text, :in_reply_to_status_id => in_reply_to_status_id)
+          else
+            @client.update(text)
+          end
         }
 
         tr.event("close") {
