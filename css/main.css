@@ -147,7 +147,7 @@ body {
 
 .text_wrap {
 	/*margin-left: 70px;*/
-	margin-bottom: 12px;
+	margin-bottom: 17px;
 	width: auto;
 	margin-left: 10px;
 	-webkit-box-ordinal-group: 2;
@@ -173,6 +173,7 @@ body {
 .text {
 	color: rgb(28, 28, 28);
 	margin-top: 5px;
+	/*margin-bottom: 10px;*/
 	font-size: 12px;
 }
 
@@ -183,6 +184,24 @@ body {
 
 .text a:hover {
 	text-decoration: underline;
+}
+
+.media_thumbnail .media_imgs_container {
+	margin-top: 10px;
+	float: right;
+}
+
+.media_img_wrap {
+	display: block;
+	margin-left: 5px;
+	padding: 2px;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.media_thumbnail_image {
+	width: 70px;
+	height: 70px;
+	background-size: cover;
 }
 
 .retweeted_status .retweeted_by {
@@ -201,6 +220,15 @@ body {
 	top: 10px;
 	font-size: 10px;
 	color: rgb(163, 163, 163);
+}
+
+.created_at a {
+	color: rgb(163, 163, 163);
+	text-decoration: none;
+}
+
+.created_at a:hover {
+	text-decoration: underline;
 }
 
 .via {
@@ -281,6 +309,7 @@ body {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	margin-top: 1px;
+	margin-bottom: 0;
 	margin-left: 10px;
 	-webkit-box-ordinal-group: 2;
 	   -moz-box-ordinal-group: 2;
@@ -300,6 +329,10 @@ body {
 
 .mini br::after {
 	content: " ";
+}
+
+.mini .media_imgs_container {
+	display: none;
 }
 
 .mini .retweeted_by {

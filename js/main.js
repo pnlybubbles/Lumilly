@@ -322,28 +322,17 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   // replace urls
   if(data.entities.urls.length !== 0) {
     data.entities.urls.forEach(function(urls, i) {
-      var url_html = "<a href='" + data.entities.urls[i].expanded_url + "' target='_blank'>" + data.entities.urls[i].display_url + "</a>";
+      var url_html = '<a href="' + data.entities.urls[i].expanded_url + '" target="_blank">' + data.entities.urls[i].display_url + '</a>';
       text = text.replace(data.entities.urls[i].url, url_html);
     });
   }
   // replace media urls
   if(data.entities.media) {
     data.entities.media.forEach(function(media, i) {
-      var media_html = "<a href='" + data.entities.media[i].expanded_url + "' target='_blank'>" + data.entities.media[i].display_url + "</a>";
+      var media_html = '<a href="' + data.entities.media[i].expanded_url + '" target="_blank">' + data.entities.media[i].display_url + '</a>';
       text = text.replace(data.entities.media[i].url, media_html);
     });
   }
-  // replace tweet data
-  item_html = html_templete.replace_with({
-    "%screen_name%" : data.screen_name,
-    "%name%" : data.name,
-    "%text%" : text,
-    // "%text%" : base_data.id_str,
-    "%created_at%" : data.mon + "/" + data.mday + " " + data.hour + ":" + data.min + ":" + data.sec,
-    // "%created_at%" : data.hour + ":" + data.min + ":" + data.sec,
-    "%profile_image_url%" : data.profile_image_url.replace(/_normal/, ""),
-    "%via%" : data.source.replace("href", "target=\"_blank\" href")
-  });
   // check mini view to add mini class
   var aditional_class = [];
   if(mini_view) {
@@ -357,10 +346,32 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     retweeted_by = "RT: " + base_data.screen_name;
     aditional_class.push("retweeted_status");
   }
-  item_html = item_html.replace_with({
+  // construct media thumbnail html
+  media_thumb_html = "";
+  media_thumb_html_templete = '<a href="%media_img_url%" target="_blank" class="media_img_wrap"><div class="media_thumbnail_image" style="background-image: url(\'%media_thumbnail_image_url%\')"></div></a>';
+  if(data.entities.media) {
+    $.each(data.entities.media, function(i, media) {
+      media_thumb_html += media_thumb_html_templete.replace_with({
+        "%media_thumbnail_image_url%" : media.media_url,
+        "%media_img_url%" : media.expanded_url
+      });
+    });
+    aditional_class.push("media_thumbnail");
+  }
+  // replace tweet data
+  item_html = html_templete.replace_with({
+    "%screen_name%" : data.screen_name,
+    "%name%" : data.name,
+    "%text%" : text,
+    // "%text%" : base_data.id,
+    "%created_at%" : '<a href="http://twitter.com/' + data.screen_name + "/status/" + data.id + '" target="_blank">' + data.mon + "/" + data.mday + " " + data.hour + ":" + data.min + ":" + data.sec + "</a>",
+    // "%created_at%" : data.hour + ":" + data.min + ":" + data.sec,
+    "%profile_image_url%" : data.profile_image_url.replace(/_normal/, ""),
+    "%via%" : data.source.replace("href", "target=\"_blank\" href"),
     "%retweeted_status_style%" : retweeted_status_style,
     "%retweeted_by%" : retweeted_by,
-    "%aditional_class%" : aditional_class.join(" ")
+    "%aditional_class%" : aditional_class.join(" "),
+    "%media_thumb%" : media_thumb_html
   });
   return item_html;
 }
