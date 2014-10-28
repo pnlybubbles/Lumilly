@@ -1,8 +1,10 @@
 require "em-websocket"
-require "json"
 require "yaml"
 require "twitter"
 require "sqlite3"
+require "active_record"
+require "active_support"
+require "active_support/core_ext"
 require "pp"
 
 module Accessor
@@ -119,7 +121,7 @@ module Lumilly
       initialize_twitter(token_dir)
       load_config(config_dir)
       @accessor = Accessor::Socket.new
-      @tweets = Lumilly::Tweets.new(@mydata)
+      Lumilly::Tweet.setup(@mydata)
       start_streaming()
     end
 
@@ -162,9 +164,13 @@ module Lumilly
             puts @accessor.tr.call_function("create_timeline_column", column);
           }
           @config["columns"].each { |column|
-            @tweets.get_latest(50, column["pattern"]).reverse.each { |values|
-              tr.call_function("add_tweet", [column["id"], values], true)
-            }
+            # p Lumilly::Tweet.get_latest(10, "all").map(&:to_values).reverse
+            # Lumilly::Tweet.get_latest(50, column["pattern"]).map(&:to_values).reverse.each { |values|
+            # Lumilly::Tweet.get_latest(50, "all").map(&:to_values).reverse.each { |values|
+            #   tr.call_function("add_tweet", [column["id"], values], true)
+            # }
+            # pp Lumilly::Tweet.get_latest(50, "all").map(&:status_id)
+            tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(50, column["pattern"]).map(&:to_values).reverse], true)
           }
           tr.call_function("gui_initialize_done", [])
         }
@@ -204,7 +210,7 @@ module Lumilly
       begin
         if res.class == Twitter::Tweet && res.to_h[:text]
           puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
-          values = @tweets.add(res)
+          values = Lumilly::Tweet.add(res).to_values
           # p values if values[:retweeted_values]
           @config["columns"].each { |column|
             check = false
@@ -247,109 +253,108 @@ module Lumilly
     end
   end
 
-  class Tweets
-    def initialize(mydata)
+  class Tweet < ActiveRecord::Base
+    def self.setup(mydata)
       puts "loading database..."
-      @db = SQLite3::Database.new("tweets.db")
-      @table = [:id, :datetime, :zone, :hour, :min, :sec, :year, :mon, :mday, :user_id, :screen_name, :name, :profile_image_url, :text, :retweeted, :retweeted_id, :source, :entities, :in_reply_to_status_id, :mention]
-      @mydata = mydata
-      unless @db.execute("SELECT tbl_name FROM sqlite_master WHERE type == 'table'").flatten.include?("tweets")
-        @db.execute("CREATE TABLE tweets(#{@table.join(",")})")
+      ActiveRecord::Base.establish_connection(
+        "adapter"=>"sqlite3",
+        "database" => "tweets.db"
+      )
+      unless ActiveRecord::Base.connection.table_exists?(:tweets)
+        ActiveRecord::Migration.create_table(:tweets) { |t|
+          t.integer(:status_id)
+          t.datetime(:status_created_at)
+          t.integer(:user_id)
+          t.string(:screen_name)
+          t.string(:name)
+          t.string(:profile_image_url)
+          t.string(:text)
+          t.boolean(:retweeted)
+          t.integer(:retweeted_status_id)
+          t.string(:source)
+          t.integer(:in_reply_to_status_id)
+          t.boolean(:mention)
+          t.text(:entities)
+          t.text(:extended_entities)
+        }
       end
+      @mydata = mydata
     end
 
-    def add(res_o)
+    def self.add(res_o)
       if res_o.class == Hash
         res = res_o
       else
-        res = res_to_hash(res_o)
+        res = res_o.to_h
       end
-      values = [
-        res[:id],
-        res[:created_at][:datetime],
-        res[:created_at][:zone],
-        res[:created_at][:hour],
-        res[:created_at][:min],
-        res[:created_at][:sec],
-        res[:created_at][:year],
-        res[:created_at][:mon],
-        res[:created_at][:mday],
-        res[:user][:id],
-        res[:user][:screen_name],
-        res[:user][:name],
-        res[:user][:profile_image_url],
-        res[:retweeted_status_exist] ? res[:retweeted_status][:text] : res[:text],
-        res[:retweeted_status_exist] ? 1 : 0,
-        res[:retweeted_status_exist] ? res[:retweeted_status][:id] : nil,
-        res[:source],
-        JSON.generate(res[:entities]),
-        res[:in_reply_to_status_id],
-        res[:retweeted_status_exist] ? nil : true && res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@mydata[:id]).!.! ? 1 : 0
-      ]
-      @db.execute("INSERT into tweets values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
-      values = adapt_for_json(values)
-      if res[:retweeted_status_exist]
-        retweeted_values = get("WHERE id == #{res[:retweeted_status][:id]}")[0]
-        if retweeted_values
-          values << retweeted_values
+      values = {
+        :status_id => res[:id],
+        :status_created_at => DateTime.strptime(res[:created_at].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24)),
+        :user_id => res[:user][:id],
+        :screen_name => res[:user][:screen_name],
+        :name => res[:user][:name],
+        :profile_image_url => res[:user][:profile_image_url],
+        :text => res[:retweeted_status] ? res[:retweeted_status][:text] : res[:text],
+        :retweeted => res[:retweeted_status] ? true : false,
+        :retweeted_status_id => res[:retweeted_status] ? res[:retweeted_status][:id] : nil,
+        :source => res[:source],
+        :in_reply_to_status_id => res[:in_reply_to_status_id],
+        :mention => res[:retweeted_status] ? nil : res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@mydata[:id]).!.!,
+        :entities => res[:entities].to_json,
+        :extended_entities => res[:extended_entities].to_json
+      }
+      if res[:retweeted_status]
+        Tweet.add(res[:retweeted_status])
+      end
+      return Tweet.create(values)
+    end
+
+    def to_values
+      values = adapt_for_json(self.attributes.symbolize_keys)
+      if values[:retweeted]
+        retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])
+        if retweeted_obj
+          values[:retweeted_values] = retweeted_obj[0].to_values
         else
-          values << add(res[:retweeted_status])
+          raise "retweeted_values not found"
         end
       else
-        values << nil
+        values[:retweeted_values] = nil
       end
-      return (@table + [:retweeted_values]).zip(values).to_h
+      return values
     end
 
-    def get(query)
-      values_list = @db.execute("SELECT * FROM tweets #{query}")
-      values_list = values_list.map { |values|
-        values = adapt_for_json(values)
-        if values[14]
-          retweeted_values = @db.execute("SELECT * FROM tweets WHERE id == #{values[15]}")[0]
-          retweeted_values = adapt_for_json(retweeted_values)
-          retweeted_values << nil
-          values << (@table + [:retweeted_values]).zip(retweeted_values).to_h
-        else
-          values << nil
-        end
-        (@table + [:retweeted_values]).zip(values).to_h
-      }
-      return values_list
-    end
-
-    def get_latest(num, pattern)
-      query = nil
+    def self.get_latest(num, pattern)
+      result = nil
       case pattern
       when "all"
-        query = "ORDER BY -id LIMIT #{num}"
+        result = Tweet.order("-status_id").limit(num)
       when "mention"
-        query = "WHERE mention == 1 ORDER BY -id LIMIT #{num}"
+        result = Tweet.where(:mention => true).order("-status_id").limit(num)
       else
         pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
           case word
-          when /^OR$/i
-            "OR"
-          when /^AND$/i
-            "AND"
-          when /^NOT$/i
-            "NOT"
+          when /^or$/i
+            "or"
+          when /^and$/i
+            "and"
+          when /^not$/i
+            "not"
           when "("
             "("
           when ")"
             ")"
           else
-            "text GLOB '*#{word}*'"
+            "text glob '*#{word}*'"
           end
         }.join(" ")
-        query = "WHERE #{pattern_query} ORDER BY -id LIMIT #{num}"
+        result = Tweet.where(pattern_query).order("-status_id").limit(num)
       end
-      return get(query)
+      return result
     end
 
     private
-    def parse_created_at(created_at)
-      created_at_obj = DateTime.strptime(created_at.to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24))
+    def parse_created_at(created_at_obj)
       new_created_at = DateTime._parse(created_at_obj.to_s)
       new_created_at.each { |k, v|
         v = v.to_s
@@ -363,26 +368,13 @@ module Lumilly
       return new_created_at
     end
 
-    def res_to_hash(res_o)
-      res = res_o.to_h
-      res[:created_at] = parse_created_at(res[:created_at])
-      if res[:retweeted_status]
-        res[:retweeted_status][:created_at] = parse_created_at(res[:retweeted_status][:created_at])
-        res[:retweeted_status][:retweeted_status_exist] = false
-        res[:retweeted_status_exist] = true
-      else
-        res[:retweeted_status_exist] = false
-      end
-      return res
-    end
-
     def adapt_for_json(values)
-      values[14] = values[14] == 1 ? true : false
-      values[0] = values[0].to_s
-      values[9] = values[9].to_s
-      values[18] = values[18].to_s
-      values[19] = values[19] == 1 ? true : false
-      values[17] = JSON.parse(values[17])
+      values[:status_id] = values[:status_id].to_s
+      values[:created_at] = parse_created_at(values[:status_created_at])
+      values[:user_id] = values[:user_id].to_s
+      values[:in_reply_to_status_id] = values[:in_reply_to_status_id].to_s
+      values[:entities] = ActiveSupport::JSON.decode(values[:entities])
+      values[:extended_entities] = ActiveSupport::JSON.decode(values[:extended_entities])
       return values
     end
   end

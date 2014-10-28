@@ -119,6 +119,12 @@ Methods.prototype = {
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
     this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
+  },
+  add_tweet_array: function(column_id, values_array) {
+    console.log(values_array);
+    values_array.forEach(function(values, i) {
+      this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
+    }, this);
   }
 };
 
@@ -260,8 +266,8 @@ TimelineColumn.prototype = {
     var self = this;
     // tweets will be automatically sorted by id
     var index = null;
-    var utid = values.id;
-    var tid = values.retweeted ? values.retweeted_id : values.id;
+    var utid = values.status_id;
+    var tid = values.retweeted ? values.retweeted_status_id : values.status_id;
     if(this.tweet_ids.length === 0) {
       // console.log(0);
       index = 0;
@@ -364,8 +370,8 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     "%name%" : data.name,
     "%text%" : text,
     // "%text%" : base_data.id,
-    "%created_at%" : '<a href="http://twitter.com/' + data.screen_name + "/status/" + data.id + '" target="_blank">' + data.mon + "/" + data.mday + " " + data.hour + ":" + data.min + ":" + data.sec + "</a>",
-    // "%created_at%" : data.hour + ":" + data.min + ":" + data.sec,
+    "%created_at%" : '<a href="http://twitter.com/' + data.screen_name + "/status/" + data.status_id + '" target="_blank">' + data.created_at.mon + "/" + data.created_at.mday + " " + data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec + "</a>",
+    // "%created_at%" : data.created_at.hour + ":" + data.created_at.min + ":" + data.created_at.sec,
     "%profile_image_url%" : data.profile_image_url.replace(/_normal/, ""),
     "%via%" : data.source.replace("href", "target=\"_blank\" href"),
     "%retweeted_status_style%" : retweeted_status_style,
