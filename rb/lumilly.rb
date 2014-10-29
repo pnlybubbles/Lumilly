@@ -251,6 +251,8 @@ module Lumilly
   end
 
   class Tweet < ActiveRecord::Base
+    @@mydata = nil
+    
     def self.setup(mydata)
       puts "loading database..."
       ActiveRecord::Base.establish_connection(
@@ -275,7 +277,7 @@ module Lumilly
           t.text(:extended_entities)
         }
       end
-      @mydata = mydata
+      @@mydata = mydata
     end
 
     def self.add(res_o)
@@ -301,7 +303,7 @@ module Lumilly
         :retweeted_status_id => res[:retweeted_status] ? res[:retweeted_status][:id] : nil,
         :source => res[:source],
         :in_reply_to_status_id => res[:in_reply_to_status_id],
-        :mention => res[:retweeted_status] ? nil : res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@mydata[:id]).!.!,
+        :mention => res[:retweeted_status] ? nil : res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@@mydata[:id]).!.!,
         :entities => res[:entities].to_json,
         :extended_entities => res[:extended_entities].to_json
       }
