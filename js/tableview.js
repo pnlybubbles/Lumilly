@@ -57,6 +57,9 @@ TableView.prototype = {
     if(id === undefined) {
       throw new Error("'id' property is required");
     }
+    if(this.index(id)) {
+      throw new Error("'id' property must be unique: " + id)
+    }
     if(classes === undefined || classes === null) {
       classes = [];
     }
@@ -113,6 +116,9 @@ TableView.prototype = {
       this.view.stop(true, false).animate({scrollTop : (this.view[0].scrollHeight - this.view.height())}, 200, 'easeOutQuad', function(){
         self.auto_scrolling = false;
         self.render();
+        if(self.view.scrollTop() != self.view[0].scrollHeight - self.view.height()) {
+          self.move_scroll_to_parcentage(1, true, true);
+        }
       });
       // console.log(this.view[0].scrollHeight - this.view.height());
       // this.view.scrollTop(this.view[0].scrollHeight - this.view.height());
@@ -419,18 +425,22 @@ TableView.prototype = {
   move_scroll_to_parcentage: function(percentage_of_scrolling, update_scrollbar, with_animate) {
     var item_height = this.find(":first").elm.outerHeight();
     var calc_scrolltop = (this.length * item_height - this.view.height()) * percentage_of_scrolling;
-    this.move_scroll(calc_scrolltop, with_animate);
-    if(update_scrollbar) { this.update_scrollbar(); }
+    var self = this;
+    this.move_scroll(calc_scrolltop, with_animate, function() {
+      if(update_scrollbar) { self.update_scrollbar(); }
+    });
   },
   move_scroll_to_index: function(index, update_scrollbar, with_animate) {
     var item_height = this.find(":first").elm.outerHeight();
     if(this[index]) {
       var calc_scrolltop = index * item_height + item_height / 2 - this.view.height() / 2;
-      this.move_scroll(calc_scrolltop, with_animate);
-      if(update_scrollbar) { this.update_scrollbar(); }
+      var self = this;
+      this.move_scroll(calc_scrolltop, with_animate, function() {
+        if(update_scrollbar) { self.update_scrollbar(); }
+      });
     }
   },
-  move_scroll: function(calc_scrolltop, with_animate) {
+  move_scroll: function(calc_scrolltop, with_animate, callback) {
     calc_scrolltop = Math.round(calc_scrolltop);
     this.auto_scrolling = false;
     var first_item = this.find(":first");
@@ -452,29 +462,34 @@ TableView.prototype = {
     for(var j = move_fisrt_item_index; j <= move_last_item_index; j++) {
       move_item_index_arr.push(j);
     }
-    with_animate = false;
+    item_index_arr.diff(move_item_index_arr).forEach(function(v) {
+      if(this[v]) { this[v].invisible(); }
+    }, this);
+    move_item_index_arr.diff(item_index_arr).forEach(function(v) {
+      if(this[v]) { this[v].visible(); }
+    }, this);
+    // with_animate = false;
     if(with_animate) {
       var now_calc_scrolltop = first_item_index * item_height + this.view.scrollTop();
       // console.log(now_calc_scrolltop, calc_scrolltop);
-      if(now_calc_scrolltop > calc_scrolltop) {
-        // console.log("up");
-        this.view.scrollTop(this.view.scrollTop()); //
-        move_item_index_arr.diff(item_index_arr).forEach(function(v) {
-          if(this[v]) { this[v].visible(); }
-        }, this);
-      } else if(now_calc_scrolltop < calc_scrolltop) {
-        // console.log("down");
+      // console.log(move_item_index_arr.diff(item_index_arr).length);
+      if(move_item_index_arr.diff(item_index_arr).length > move_item_index_arr.length * 0.9) { // this is not the best
+        if(now_calc_scrolltop > calc_scrolltop) {
+          console.log("up");
+          this.view.scrollTop(this.view[0].scrollHeight - this.view.height());
+        } else if(now_calc_scrolltop < calc_scrolltop) {
+          console.log("down");
+          this.view.scrollTop(0);
+        } else {
+          console.log("fix");
+        }
+        this.view.stop(true, false).animate({scrollTop : real_scrolltop}, 200, 'easeOutQuad', callback);
       } else {
-        // console.log("fix");
+        if(callback) { callback(); }
       }
     } else {
-      item_index_arr.diff(move_item_index_arr).forEach(function(v) {
-        if(this[v]) { this[v].invisible(); }
-      }, this);
-      move_item_index_arr.diff(item_index_arr).forEach(function(v) {
-        if(this[v]) { this[v].visible(); }
-      }, this);
       this.view.scrollTop(real_scrolltop);
+      if(callback) { callback(); }
     }
   },
   render: function() {
@@ -485,6 +500,7 @@ TableView.prototype = {
     }
     [1, -1].forEach(function(v, i) {
       while(1) {
+        // console.log("while");
         var base_item = v == -1 ? this.find(":first") : this.find(":last");
         var scroll_top = this.view.scrollTop();
         var base_item_height = base_item.elm.outerHeight();

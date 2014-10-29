@@ -164,13 +164,10 @@ module Lumilly
             puts @accessor.tr.call_function("create_timeline_column", column);
           }
           @config["columns"].each { |column|
-            # p Lumilly::Tweet.get_latest(10, "all").map(&:to_values).reverse
-            # Lumilly::Tweet.get_latest(50, column["pattern"]).map(&:to_values).reverse.each { |values|
-            # Lumilly::Tweet.get_latest(50, "all").map(&:to_values).reverse.each { |values|
-            #   tr.call_function("add_tweet", [column["id"], values], true)
-            # }
-            # pp Lumilly::Tweet.get_latest(50, "all").map(&:status_id)
-            tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(50, column["pattern"]).map(&:to_values).reverse], true)
+            ActiveRecord::Base.connection_pool.with_connection {
+              # p Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).map { |e| e[:status_id] }
+              tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).reverse], true)
+            }
           }
           tr.call_function("gui_initialize_done", [])
         }
@@ -306,13 +303,20 @@ module Lumilly
       if res[:retweeted_status]
         Tweet.add(res[:retweeted_status])
       end
-      return Tweet.create(values)
+      ret = nil
+      ActiveRecord::Base.connection_pool.with_connection {
+        ret = Tweet.create(values)
+      }
+      return ret
     end
 
     def to_values
       values = adapt_for_json(self.attributes.symbolize_keys)
       if values[:retweeted]
-        retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])
+        retweeted_obj = nil
+        ActiveRecord::Base.connection_pool.with_connection {
+          retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])
+        }
         if retweeted_obj
           values[:retweeted_values] = retweeted_obj[0].to_values
         else
@@ -326,30 +330,32 @@ module Lumilly
 
     def self.get_latest(num, pattern)
       result = nil
-      case pattern
-      when "all"
-        result = Tweet.order("-status_id").limit(num)
-      when "mention"
-        result = Tweet.where(:mention => true).order("-status_id").limit(num)
-      else
-        pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
-          case word
-          when /^or$/i
-            "or"
-          when /^and$/i
-            "and"
-          when /^not$/i
-            "not"
-          when "("
-            "("
-          when ")"
-            ")"
-          else
-            "text glob '*#{word}*'"
-          end
-        }.join(" ")
-        result = Tweet.where(pattern_query).order("-status_id").limit(num)
-      end
+      ActiveRecord::Base.connection_pool.with_connection {
+        case pattern
+        when "all"
+          result = Tweet.order("-status_id").limit(num)
+        when "mention"
+          result = Tweet.where(:mention => true).order("-status_id").limit(num)
+        else
+          pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
+            case word
+            when /^or$/i
+              "or"
+            when /^and$/i
+              "and"
+            when /^not$/i
+              "not"
+            when "("
+              "("
+            when ")"
+              ")"
+            else
+              "text glob '*#{word}*'"
+            end
+          }.join(" ")
+          result = Tweet.where(pattern_query).order("-status_id").limit(num)
+        end
+      }
       return result
     end
 

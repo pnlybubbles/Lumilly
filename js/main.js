@@ -118,11 +118,11 @@ Methods.prototype = {
   },
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
-    this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
+    // this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
   },
   add_tweet_array: function(column_id, values_array) {
-    console.log(values_array);
     values_array.forEach(function(values, i) {
+      // console.log(values.status_id, values.text);
       this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
     }, this);
   }
@@ -272,6 +272,9 @@ TimelineColumn.prototype = {
       // console.log(0);
       index = 0;
       self.tableview.insert_last(html, "col_" + self.tableviews_id + "_utid_" + utid, ["utid_" + utid, "tid_" + tid]);
+      // for(var j = 0; j <= 300; j++) {
+      //   self.tableview.insert_last(html, "col_" + self.tableviews_id + j + "_utid_" + utid + j, ["utid_" + utid + j, "tid_" + tid + j]);
+      // }
     } else {
       var reversed_tweet_ids = $.extend(true, [], this.tweet_ids);
       reversed_tweet_ids.reverse();
@@ -298,6 +301,7 @@ TimelineColumn.prototype = {
         }
       });
     }
+    // console.log(index);
     this.tweets.splice(index, 0, values);
     this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + utid);
   },
