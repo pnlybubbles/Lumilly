@@ -58,7 +58,7 @@ TableView.prototype = {
       throw new Error("'id' property is required");
     }
     if(this.index(id)) {
-      throw new Error("'id' property must be unique: " + id)
+      throw new Error("'id' property must be unique: " + id);
     }
     if(classes === undefined || classes === null) {
       classes = [];

@@ -284,6 +284,11 @@ module Lumilly
       else
         res = res_o.to_h
       end
+      ActiveRecord::Base.connection_pool.with_connection {
+        if Tweet.where(:status_id => res[:id])[0]
+          return nil
+        end
+      }
       values = {
         :status_id => res[:id],
         :status_created_at => DateTime.strptime(res[:created_at].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24)),
@@ -315,10 +320,10 @@ module Lumilly
       if values[:retweeted]
         retweeted_obj = nil
         ActiveRecord::Base.connection_pool.with_connection {
-          retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])
+          retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])[0]
         }
         if retweeted_obj
-          values[:retweeted_values] = retweeted_obj[0].to_values
+          values[:retweeted_values] = retweeted_obj.to_values
         else
           raise "retweeted_values not found"
         end

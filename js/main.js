@@ -118,11 +118,10 @@ Methods.prototype = {
   },
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
-    // this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
+    this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
   },
   add_tweet_array: function(column_id, values_array) {
     values_array.forEach(function(values, i) {
-      // console.log(values.status_id, values.text);
       this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
     }, this);
   }
