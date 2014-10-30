@@ -361,6 +361,7 @@ TableView.prototype = {
         $(window).unbind("mouseup");
       });
       $(window).bind("mousemove", {this_obj: event.data.this_obj, in_scrollbutton_offset: in_scrollbutton_offset, scrollwrap_offset: scrollwrap_offset, scrollbutton_top_area: scrollbutton_top_area}, function(event) {
+        event.preventDefault();
         var bar_position = event.clientY - event.data.scrollwrap_offset - event.data.in_scrollbutton_offset;
         // console.log(bar_position);
         bar_position = (bar_position > event.data.scrollbutton_top_area ? event.data.scrollbutton_top_area : bar_position < 0 ? 0 : bar_position);
