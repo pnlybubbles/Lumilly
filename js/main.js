@@ -81,7 +81,7 @@ function event_setup (main) {
       $.each(tv.selected, function(i, id) {
         var tweet = column.tweets[column.index(id)];
         var base_tweet = null;
-        if(tweet.retweeted) {
+        if(tweet.retweeted_status) {
           base_tweet = tweet.retweeted_values;
         } else {
           base_tweet = tweet;
@@ -267,7 +267,7 @@ TimelineColumn.prototype = {
     // tweets will be automatically sorted by id
     var index = null;
     var utid = values.status_id;
-    var tid = values.retweeted ? values.retweeted_status_id : values.status_id;
+    var tid = values.retweeted_status ? values.retweeted_status_id : values.status_id;
     if(this.tweet_ids.length === 0) {
       // console.log(0);
       index = 0;
@@ -279,10 +279,6 @@ TimelineColumn.prototype = {
       var reversed_tweet_ids = $.extend(true, [], this.tweet_ids);
       reversed_tweet_ids.reverse();
       $.each(reversed_tweet_ids, function(i, id) {
-        // var id_ = values.retweeted_status ? values.retweeted_status.id : utid;
-        // console.log(utid, id, compareId(utid, id));
-        // console.log(id_, id, compareId(id_, id));
-        // if(compareId(id_, id)) {
         if(compareId(utid, id)) {
           if(i === 0) {
             // console.log(self.tweet_ids.length);
@@ -322,7 +318,7 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   }
   var data;
   // check retweet or not
-  if(base_data.retweeted) {
+  if(base_data.retweeted_status) {
     data = base_data.retweeted_values;
   } else {
     data = base_data;
@@ -339,9 +335,12 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   // replace media urls
   if(data.entities.media) {
     data.entities.media.forEach(function(media, i) {
-      var media_html = '<a href="' + data.entities.media[i].expanded_url + '" target="_blank">' + data.entities.media[i].display_url + '</a>';
-      text = text.replace(data.entities.media[i].url, media_html);
+      var media_html = '<a href="' + media.expanded_url + '" target="_blank">' + media.display_url + '</a>';
+      text = text.replace(media.url, media_html);
     });
+  }
+  if(data.extended_entities) {
+    console.log(data.extended_entities);
   }
   // check mini view to add mini class
   var aditional_class = [];
@@ -351,7 +350,7 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   // replace retweet source profile image if retweet
   var retweeted_status_style = "";
   var retweeted_by = "";
-  if(base_data.retweeted) {
+  if(base_data.retweeted_status) {
     retweeted_status_style = "background-image: url('" + base_data.profile_image_url.replace(/_normal/, "") + "')";
     retweeted_by = "RT: " + base_data.screen_name;
     aditional_class.push("retweeted_status");
@@ -359,8 +358,8 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   // construct media thumbnail html
   media_thumb_html = "";
   media_thumb_html_templete = '<a href="%media_img_url%" target="_blank" class="media_img_wrap"><div class="media_thumbnail_image" style="background-image: url(\'%media_thumbnail_image_url%\')"></div></a>';
-  if(data.entities.media) {
-    $.each(data.entities.media, function(i, media) {
+  if(data.extended_entities) {
+    $.each(data.extended_entities.media, function(i, media) {
       media_thumb_html += media_thumb_html_templete.replace_with({
         "%media_thumbnail_image_url%" : media.media_url,
         "%media_img_url%" : media.expanded_url

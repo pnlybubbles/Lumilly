@@ -193,7 +193,21 @@ module Lumilly
           puts "streaming connecting..."
           begin
             @stream_client.user { |res|
-              on_res(res)
+              begin
+                case res
+                when Twitter::Tweet
+                  on_tweet(res)
+                when Twitter::DirectMessage
+                  # on_direct_message
+                when Twitter::Streaming::Event
+                  on_event(res)
+                when Twitter::Streaming::DeletedTweet
+                  on_delete(res)
+                end
+              rescue Exception => e
+                puts e.to_s
+                puts e.backtrace.join("\n")
+              end
             }
           rescue Exception => e
             puts e.to_s
@@ -203,45 +217,99 @@ module Lumilly
       }
     end
 
-    def on_res(res)
-      begin
-        if res.class == Twitter::Tweet && res.to_h[:text]
-          puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
-          values = Lumilly::Tweet.add(res).to_values
-          # p values if values[:retweeted_values]
-          @config["columns"].each { |column|
-            check = false
-            case column["pattern"]
-            when "all"
-              check = true
-            when "mention"
-              check = true if values[:mention]
+    def on_tweet(res)
+      puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
+      values = Lumilly::Tweet.add(res).to_values
+      @config["columns"].each { |column|
+        check = false
+        case column["pattern"]
+        when "all"
+          check = true
+        when "mention"
+          check = true if values[:mention]
+        else
+          # aaa OR bbb OR ccc OR (ddd AND ggg) OR (eee AND NOT (fff))
+          pattern_query = column["pattern"].gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
+            case word
+            when /^OR$/i
+              "||"
+            when /^AND$/i
+              "&&"
+            when /^NOT$/i
+              "!"
+            when "("
+              "("
+            when ")"
+              ")"
             else
-              # aaa OR bbb OR ccc OR (ddd AND ggg) OR (eee AND NOT (fff))
-              pattern_query = column["pattern"].gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
-                case word
-                when /^OR$/i
-                  "||"
-                when /^AND$/i
-                  "&&"
-                when /^NOT$/i
-                  "!"
-                when "("
-                  "("
-                when ")"
-                  ")"
-                else
-                  "values[:text] =~ /#{word.gsub('/', '\\/').gsub('#', '\\#')}/" # escape
-                end
-              }.join(" ")
-              check = eval(pattern_query)
+              "values[:text] =~ /#{word.gsub('/', '\\/').gsub('#', '\\#')}/" # escape
             end
-            @accessor.tr.call_function("add_tweet", [column["id"], values], true) if @accessor.tr && check
-          }
+          }.join(" ")
+          check = eval(pattern_query)
         end
-      rescue Exception => e
-        puts e
-        puts e.backtrace.join("\n")
+        @accessor.tr.call_function("add_tweet", [column["id"], values], true) if @accessor.tr && check
+      }
+      if res.retweeted_status?
+        ActiveRecord::Base.connection_pool.with_connection {
+          obj = Tweet.where(:status_id => res.retweeted_status.id)[0]
+          if res.user.id == @mydata[:id]
+            obj.retweeted = true
+          else
+            obj.retweet_count += 1
+          end
+          obj.save
+        }
+      end
+    end
+
+    def on_delete(res)
+      ActiveRecord::Base.connection_pool.with_connection {
+        obj = Tweet.where(:status_id => res.id)[0]
+        if obj
+          if obj.retweeted_status
+            obj_r = Tweet.where(:status_id => obj.retweeted_status_id)[0]
+            if obj.user_id == @mydata[:id]
+              obj_r.retweeted = false
+            else
+              obj_r.retweet_count -= 1
+            end
+            obj_r.save
+          end
+          obj.destory
+        end
+      }
+    end
+
+    def on_event(res)
+      case res.name
+      when :favorite
+        ActiveRecord::Base.connection_pool.with_connection {
+          obj = Tweet.where(:status_id => res.target_object.id)[0]
+          if obj
+            if res.source.id == @mydata[:id]
+              obj.favorited = true
+            else
+              obj.favorite_count += 1
+            end
+            obj.save
+          end
+        }
+      when :unfavorite
+        ActiveRecord::Base.connection_pool.with_connection {
+          obj = Tweet.where(:status_id => res.target_object.id)[0]
+          if obj
+            if res.source.id == @mydata[:id]
+              obj.favorited = false
+            else
+              obj.favorite_count -= 1
+            end
+            obj.save
+          end
+        }
+      when :follow
+        # follow
+      when :unfollow
+        # unfollow
       end
     end
 
@@ -252,7 +320,7 @@ module Lumilly
 
   class Tweet < ActiveRecord::Base
     @@mydata = nil
-    
+
     def self.setup(mydata)
       puts "loading database..."
       ActiveRecord::Base.establish_connection(
@@ -268,49 +336,53 @@ module Lumilly
           t.string(:name)
           t.string(:profile_image_url)
           t.string(:text)
-          t.boolean(:retweeted)
+          t.boolean(:retweeted_status)
           t.integer(:retweeted_status_id)
           t.string(:source)
           t.integer(:in_reply_to_status_id)
           t.boolean(:mention)
           t.text(:entities)
           t.text(:extended_entities)
+          t.boolean(:retweeted)
+          t.boolean(:favorited)
+          t.integer(:retweet_count)
+          t.integer(:favorite_count)
         }
       end
       @@mydata = mydata
     end
 
-    def self.add(res_o)
-      if res_o.class == Hash
-        res = res_o
-      else
-        res = res_o.to_h
-      end
+    def self.add(res)
       ActiveRecord::Base.connection_pool.with_connection {
-        if Tweet.where(:status_id => res[:id])[0]
+        if Tweet.where(:status_id => res.id)[0]
           return nil
         end
       }
       values = {
-        :status_id => res[:id],
-        :status_created_at => DateTime.strptime(res[:created_at].to_s, "%a %b %d %X +0000 %Y").new_offset(Rational(9,24)),
-        :user_id => res[:user][:id],
-        :screen_name => res[:user][:screen_name],
-        :name => res[:user][:name],
-        :profile_image_url => res[:user][:profile_image_url],
-        :text => res[:retweeted_status] ? res[:retweeted_status][:text] : res[:text],
-        :retweeted => res[:retweeted_status] ? true : false,
-        :retweeted_status_id => res[:retweeted_status] ? res[:retweeted_status][:id] : nil,
-        :source => res[:source],
-        :in_reply_to_status_id => res[:in_reply_to_status_id],
-        :mention => res[:retweeted_status] ? nil : res[:entities][:user_mentions] && res[:entities][:user_mentions].map { |um| um[:id] }.index(@@mydata[:id]).!.!,
-        :entities => res[:entities].to_json,
-        :extended_entities => res[:extended_entities].to_json
+        :status_id => res.id,
+        :status_created_at => DateTime.parse(res.created_at.to_s).new_offset(Rational(9,24)),
+        :user_id => res.user.id,
+        :screen_name => res.user.screen_name,
+        :name => res.user.name,
+        :profile_image_url => res.user.profile_image_url.to_s,
+        :text => res.retweeted_status? ? res.retweeted_status.text : res.text,
+        :retweeted_status => res.retweeted_status?,
+        :retweeted_status_id => res.retweeted_status? ? res.retweeted_status.id : nil,
+        :source => res.source,
+        :in_reply_to_status_id => res.in_reply_to_status_id? ? res.in_reply_to_status_id : nil,
+        :mention => res.retweeted_status? ? nil : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata[:id]).!.!,
+        :entities => res.to_h[:entities].to_json,
+        :extended_entities => res.to_h[:extended_entities].to_json,
+        :retweeted => res.retweeted?,
+        :favorited => res.favorited?,
+        :retweet_count => res.retweet_count,
+        :favorite_count => res.favorite_count
       }
-      if res[:retweeted_status]
-        Tweet.add(res[:retweeted_status])
+      if res.retweeted_status?
+        Tweet.add(res.retweeted_status)
       end
       ret = nil
+      # p values
       ActiveRecord::Base.connection_pool.with_connection {
         ret = Tweet.create(values)
       }
@@ -319,7 +391,7 @@ module Lumilly
 
     def to_values
       values = adapt_for_json(self.attributes.symbolize_keys)
-      if values[:retweeted]
+      if values[:retweeted_status]
         retweeted_obj = nil
         ActiveRecord::Base.connection_pool.with_connection {
           retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])[0]

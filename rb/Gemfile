@@ -8,3 +8,9 @@ gem "twitter"
 gem "sqlite3"
 gem "activerecord"
 gem "activesupport"
+
+group :development do
+  gem "pry"
+  gem "pry-byebug"
+  gem "pry-coolline"
+end

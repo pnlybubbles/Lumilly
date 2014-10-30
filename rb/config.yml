@@ -9,4 +9,4 @@ columns:
 
   - id: sample
     name: Sample
-    pattern: "ごちうさ OR ご注文はうさぎですか OR きんモザ OR きんいろモザイク OR あわあわ"
+    pattern: "きらら OR ゆるゆり OR ごちうさ OR ご注文はうさぎですか OR きんモザ OR きんいろモザイク OR あわあわ"

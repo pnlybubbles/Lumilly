@@ -193,14 +193,15 @@ body {
 
 .media_img_wrap {
 	display: block;
-	margin-left: 5px;
+	margin-left: 7px;
 	padding: 2px;
 	border: 1px solid rgba(0, 0, 0, 0.1);
+	float: right;
 }
 
 .media_thumbnail_image {
-	width: 70px;
-	height: 70px;
+	width: 80px;
+	height: 80px;
 	background-size: cover;
 }
 
