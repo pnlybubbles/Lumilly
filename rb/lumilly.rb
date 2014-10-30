@@ -275,7 +275,7 @@ module Lumilly
             end
             obj_r.save
           end
-          obj.destory
+          obj.destroy
         end
       }
     end
