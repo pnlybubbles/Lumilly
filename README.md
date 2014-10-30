@@ -29,16 +29,19 @@ Twitterクライアント
 
 ConsumerKey, AcccessTokenは自分で入れて下さい。
 
-	key_token.rb
+	key_token.yml
 
-というファイルを作成し、`lumilly.rb`と同じ階層に配置してください。(`/rb/key_token.rb`)
+という名前のファイルを作成し、`lumilly.rb`と同じ階層に配置してください。(`/rb/key_token.yml`)
 
-ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.rb`に追加して下さい。
+ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`に追加して下さい。
 
-	CONSUMER_KEY        = "*"
-	CONSUMER_SECRET     = "*"
-	ACCESS_TOKEN        = "*"
-	ACCESS_TOKEN_SECRET = "*"
+    consumer_key        : ******
+    consumer_secret     : ******
+    access_token        : ******
+    access_token_secret : ******
+	
+	
+	
 
 
 
