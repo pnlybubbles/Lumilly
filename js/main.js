@@ -38,6 +38,7 @@ function event_setup (main) {
     text_field_keybind.focus();
   });
   text_field_keybind.on_focus(function() {
+    console.log("on_focus");
     $(".text_field").focus();
   });
   text_field_keybind.on_blur(function() {

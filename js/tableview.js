@@ -344,12 +344,14 @@ TableView.prototype = {
     this.scrollbox = this.obj.find(".scrollbox");
     this.scrollbutton = this.obj.find(".scrollbutton");
     this.scrollbox.bind("mousedown", {this_obj: this}, function(event) {
+      event.data.this_obj.keybind.focus();
       var bar_position = event.clientY - event.data.this_obj.scrollwrap.offset().top - event.data.this_obj.scrollbutton.height() / 2;
       var scrollbutton_top_area = event.data.this_obj.scrollwrap.height() - event.data.this_obj.scrollbutton.height();
       bar_position = (bar_position > event.data.scrollbutton_top_area ? event.data.scrollbutton_top_area : bar_position < 0 ? 0 : bar_position);
       event.data.this_obj.move_scroll_to_parcentage(bar_position / scrollbutton_top_area, true, true);
     });
     this.scrollbutton.bind("mousedown", {this_obj: this}, function(event) {
+      event.data.this_obj.keybind.focus();
       event.stopPropagation();
       var scrollwrap_offset = event.data.this_obj.scrollwrap.offset().top;
       var in_scrollbutton_offset = event.clientY - event.data.this_obj.scrollbutton.offset().top;
@@ -578,10 +580,30 @@ Cursor.prototype = {
     return remove_item ? this : false;
   },
   next: function() {
-    return this.move((this.expand_head ? this.attr.index(this.expand_head) : this.base.index()) + 1) ? this : false;
+    if(this.base.initialized) {
+      return this.move((this.expand_head ? this.attr.index(this.expand_head) : this.base.index()) + 1) ? this : false;
+    } else {
+      if(this.attr.length !== 0) {
+        var index = this.attr.last().index();
+        this.add(index).update_base(index);
+        return this;
+      } else {
+        return false;
+      }
+    }
   },
   prev: function() {
-    return this.move((this.expand_head ? this.attr.index(this.expand_head) : this.base.index()) - 1) ? this : false;
+    if(this.base.initialized) {
+      return this.move((this.expand_head ? this.attr.index(this.expand_head) : this.base.index()) - 1) ? this : false;
+    } else {
+      if(this.attr.length !== 0) {
+        var index = this.attr.last().index();
+        this.add(index).update_base(index);
+        return this;
+      } else {
+        return false;
+      }
+    }
   },
   expand: function(index) {
     if(this.base.initialized) {
@@ -617,76 +639,80 @@ Cursor.prototype = {
     return this;
   },
   expand_next: function() {
-    var indexed_selected = this.attr.selected.map(function(v, i) {
-      return this.attr.index(v);
-    }, this);
-    // console.log(indexed_selected);
-    if(this.expand_head === undefined) {
-      this.expand_head = this.base.id;
-    }
-    var expand_head_index = this.attr.index(this.expand_head);
-    var base_index = this.base.index();
-    var expand_head_selected_index = indexed_selected.indexOf(expand_head_index);
-    // console.log(indexed_selected);
-    // console.log(expand_head_index);
-    // console.log(base_index);
-    if(expand_head_index >= base_index) {
-      for(var j = expand_head_selected_index; j <= indexed_selected.length - 1; j++) {
-        // console.log(indexed_selected[j + 1] + ":" + indexed_selected[j]);
-        if(j === indexed_selected.length - 1 || indexed_selected[j + 1] - indexed_selected[j] > 1) {
-          var r = this.add(indexed_selected[j] + 1);
-          // console.log(r);
-          if(r) {
-            this.expand_head = this.attr[indexed_selected[j] + 1].id;
-          }
-          break;
-        }
+    if(this.base.initialized) {
+      var indexed_selected = this.attr.selected.map(function(v, i) {
+        return this.attr.index(v);
+      }, this);
+      // console.log(indexed_selected);
+      if(this.expand_head === undefined) {
+        this.expand_head = this.base.id;
       }
-    } else if(expand_head_index < base_index) {
-      for(var k = expand_head_selected_index; k >= 0; k--) {
-        // console.log(indexed_selected[k]);
-        // console.log(indexed_selected[k - 1]);
-        // console.log(k);
-        if(k === 0 || indexed_selected[k] - indexed_selected[k - 1] > 1) {
-          this.remove(indexed_selected[k]);
-          this.expand_head = this.attr[indexed_selected[k] + 1].id;
-          break;
+      var expand_head_index = this.attr.index(this.expand_head);
+      var base_index = this.base.index();
+      var expand_head_selected_index = indexed_selected.indexOf(expand_head_index);
+      // console.log(indexed_selected);
+      // console.log(expand_head_index);
+      // console.log(base_index);
+      if(expand_head_index >= base_index) {
+        for(var j = expand_head_selected_index; j <= indexed_selected.length - 1; j++) {
+          // console.log(indexed_selected[j + 1] + ":" + indexed_selected[j]);
+          if(j === indexed_selected.length - 1 || indexed_selected[j + 1] - indexed_selected[j] > 1) {
+            var r = this.add(indexed_selected[j] + 1);
+            // console.log(r);
+            if(r) {
+              this.expand_head = this.attr[indexed_selected[j] + 1].id;
+            }
+            break;
+          }
+        }
+      } else if(expand_head_index < base_index) {
+        for(var k = expand_head_selected_index; k >= 0; k--) {
+          // console.log(indexed_selected[k]);
+          // console.log(indexed_selected[k - 1]);
+          // console.log(k);
+          if(k === 0 || indexed_selected[k] - indexed_selected[k - 1] > 1) {
+            this.remove(indexed_selected[k]);
+            this.expand_head = this.attr[indexed_selected[k] + 1].id;
+            break;
+          }
         }
       }
     }
     return this;
   },
   expand_prev: function() {
-    var indexed_selected = this.attr.selected.map(function(v, i) {
-      return this.attr.index(v);
-    }, this);
-    // console.log(indexed_selected);
-    if(this.expand_head === undefined) {
-      this.expand_head = this.base.id;
-    }
-    var expand_head_index = this.attr.index(this.expand_head);
-    var base_index = this.base.index();
-    var expand_head_selected_index = indexed_selected.indexOf(expand_head_index);
-    // console.log(indexed_selected);
-    // console.log(expand_head_index);
-    // console.log(base_index);
-    if(expand_head_index <= base_index) {
-      for(var j = expand_head_selected_index; j >= 0; j--) {
-        if(j === 0 || indexed_selected[j] - indexed_selected[j - 1] > 1) {
-          r = this.add(indexed_selected[j] - 1);
-          // console.log(r);
-          if(r) {
-            this.expand_head = this.attr[indexed_selected[j] - 1].id;
-          }
-          break;
-        }
+    if(this.base.initialized) {
+      var indexed_selected = this.attr.selected.map(function(v, i) {
+        return this.attr.index(v);
+      }, this);
+      // console.log(indexed_selected);
+      if(this.expand_head === undefined) {
+        this.expand_head = this.base.id;
       }
-    } else if(expand_head_index > base_index) {
-      for(var k = expand_head_selected_index; k <= indexed_selected.length - 1; k++) {
-        if(k === indexed_selected.length - 1 || indexed_selected[k + 1] - indexed_selected[k] > 1) {
-          this.remove(indexed_selected[k]);
-          this.expand_head = this.attr[indexed_selected[k] - 1].id;
-          break;
+      var expand_head_index = this.attr.index(this.expand_head);
+      var base_index = this.base.index();
+      var expand_head_selected_index = indexed_selected.indexOf(expand_head_index);
+      // console.log(indexed_selected);
+      // console.log(expand_head_index);
+      // console.log(base_index);
+      if(expand_head_index <= base_index) {
+        for(var j = expand_head_selected_index; j >= 0; j--) {
+          if(j === 0 || indexed_selected[j] - indexed_selected[j - 1] > 1) {
+            r = this.add(indexed_selected[j] - 1);
+            // console.log(r);
+            if(r) {
+              this.expand_head = this.attr[indexed_selected[j] - 1].id;
+            }
+            break;
+          }
+        }
+      } else if(expand_head_index > base_index) {
+        for(var k = expand_head_selected_index; k <= indexed_selected.length - 1; k++) {
+          if(k === indexed_selected.length - 1 || indexed_selected[k + 1] - indexed_selected[k] > 1) {
+            this.remove(indexed_selected[k]);
+            this.expand_head = this.attr[indexed_selected[k] - 1].id;
+            break;
+          }
         }
       }
     }
