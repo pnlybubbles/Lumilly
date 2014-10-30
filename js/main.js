@@ -49,9 +49,9 @@ function event_setup (main) {
     var count = check_update_count(text, false);
     if(count <= 140 && count !== 0) {
       var in_reply_to_id = null;
-      if(in_reply_to["screen_name"]) {
-        if(text.match(RegExp("@" + in_reply_to["screen_name"] + "($|[^0-9A-Za-z_])"))) {
-          in_reply_to_id = in_reply_to["id"];
+      if(in_reply_to.screen_name) {
+        if(text.match(RegExp("@" + in_reply_to.screen_name + "($|[^0-9A-Za-z_])"))) {
+          in_reply_to_id = in_reply_to.id;
         }
       }
       $(".text_field").val("");
@@ -90,8 +90,9 @@ function event_setup (main) {
       });
       console.log(in_reply_to_tweets);
       $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_field").val());
-      in_reply_to["screen_name"] = in_reply_to_tweets.first().screen_name;
-      in_reply_to["id"] = in_reply_to_tweets.first().id;
+      in_reply_to.screen_name = in_reply_to_tweets.first().screen_name;
+      in_reply_to.id = in_reply_to_tweets.first().status_id;
+      // console.log(in_reply_to);
       KeyEvents.focus("compose_field");
       $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
     });
@@ -338,9 +339,6 @@ function makeup_display_html (base_data, html_templete, mini_view) {
       var media_html = '<a href="' + media.expanded_url + '" target="_blank">' + media.display_url + '</a>';
       text = text.replace(media.url, media_html);
     });
-  }
-  if(data.extended_entities) {
-    console.log(data.extended_entities);
   }
   // check mini view to add mini class
   var aditional_class = [];

@@ -254,9 +254,8 @@ module Lumilly
           obj = Tweet.where(:status_id => res.retweeted_status.id)[0]
           if res.user.id == @mydata[:id]
             obj.retweeted = true
-          else
-            obj.retweet_count += 1
           end
+          obj.retweet_count += 1
           obj.save
         }
       end
@@ -270,9 +269,8 @@ module Lumilly
             obj_r = Tweet.where(:status_id => obj.retweeted_status_id)[0]
             if obj.user_id == @mydata[:id]
               obj_r.retweeted = false
-            else
-              obj_r.retweet_count -= 1
             end
+            obj_r.retweet_count -= 1
             obj_r.save
           end
           obj.destroy
@@ -288,9 +286,8 @@ module Lumilly
           if obj
             if res.source.id == @mydata[:id]
               obj.favorited = true
-            else
-              obj.favorite_count += 1
             end
+            obj.favorite_count += 1
             obj.save
           end
         }
@@ -300,9 +297,8 @@ module Lumilly
           if obj
             if res.source.id == @mydata[:id]
               obj.favorited = false
-            else
-              obj.favorite_count -= 1
             end
+            obj.favorite_count -= 1
             obj.save
           end
         }
