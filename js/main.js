@@ -37,12 +37,23 @@ function event_setup (main) {
   $(".text_field").on("focus", function() {
     text_field_keybind.focus();
   });
+  $(".text_field").on("keyup", function() {
+    var count = 140 - check_update_count($(".text_field").val(), false);
+    if(count < 0) {
+      $(".text_field_counter").css({"color" : "rgb(255, 54, 46)"});
+    } else {
+      $(".text_field_counter").css({"color" : "rgb(130, 130, 130)"});
+    }
+    $(".text_field_counter").text(count);
+  });
   text_field_keybind.on_focus(function() {
     console.log("on_focus");
     $(".text_field").focus();
+    $(".text_field_counter").show();
   });
   text_field_keybind.on_blur(function() {
     $(".text_field").blur();
+    $(".text_field_counter").hide();
   });
   text_field_keybind.bind("13", ["c"], function() {
     var text = $(".text_field").val();
