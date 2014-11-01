@@ -137,6 +137,13 @@ Methods.prototype = {
     values_array.forEach(function(values, i) {
       this.column_view.columns[this.column_view.index(column_id)].add_tweet(values);
     }, this);
+  },
+  remove_tweet: function(id) {
+    $.each(this.column_view.columns, function(i, column) {
+      column.tableview.remove("col_" + column.tableviews_id + "_utid_" + id);
+    });
+  },
+  update_tweet_status: function(id, status) {
   }
 };
 

@@ -275,9 +275,11 @@ module Lumilly
           else
             obj_retweets = Tweet.where(:retweeted_status_id => res.id)
             obj_retweets.each { |obj_r|
-               obj_r.destroy
+              @accessor.tr.call_function("remove_tweet", obj_r.status_id.to_s, true)
+              obj_r.destroy
             }
           end
+          @accessor.tr.call_function("remove_tweet", obj.status_id.to_s, true)
           obj.destroy
         end
       }
