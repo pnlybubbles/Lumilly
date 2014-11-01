@@ -376,6 +376,13 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     });
     aditional_class.push("media_thumbnail");
   }
+  // add symbols class
+  if(data.retweeted) {
+    aditional_class.push("retweeted");
+  }
+  if(data.favorited) {
+    aditional_class.push("favorited");
+  }
   // replace tweet data
   item_html = html_templete.replace_with({
     "%screen_name%" : data.screen_name,
