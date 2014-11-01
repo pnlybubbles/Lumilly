@@ -273,7 +273,7 @@ module Lumilly
             obj_retweet_source.retweet_count -= 1
             obj_retweet_source.save
           else
-            obj_retweets = Twitter.where(:retweeted_id => res.id)
+            obj_retweets = Tweet.where(:retweeted_id => res.id)
             obj_retweets.each { |obj_r|
                obj_r.destroy
             }

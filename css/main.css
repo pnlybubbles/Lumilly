@@ -369,6 +369,7 @@ body {
 }
 
 .mini .status {
+  position: relative;
 }
 
 /* status symbols */
