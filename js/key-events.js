@@ -24,8 +24,8 @@ KeyEvents.prototype = {
     // KeyEvents.focused = KeyEvents.listeners.length - 1;
   },
   bind: function(key_code, with_key, func, this_obj) {
-    if(with_key.join().replace(/[acms]*/, "") !== "") {
-      throw new Error("invalid with_key");
+    if(with_key.join("").replace(/[acms]*/, "") !== "") {
+      throw new Error("invalid with_key: " + with_key.join(", "));
     }
     var key = key_code + with_key.sort().join();
     KeyEvents.binding[this.index][key] = function(event) {

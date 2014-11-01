@@ -26,13 +26,16 @@ function setup () {
 
 // gui initialize done
 function event_setup (main) {
+  // global KeyEvent focus
   var before_focused_column = null;
   KeyEvents.on_focus(function(blur_id) {
     if(blur_id && blur_id.match(/table_/) !== null) {
       before_focused_column = blur_id;
     }
   });
+  // focus to first column
   main.column_view.columns.first().tableview.keybind.focus();
+  // compise field events
   var text_field_keybind = new KeyEvents("compose_field");
   $(".text_field").on("focus", function() {
     text_field_keybind.focus();
@@ -82,6 +85,7 @@ function event_setup (main) {
     "id" : null,
     "screen_name" : null
   };
+  // tableviews key events
   $.each(main.column_view.columns, function(i, column) {
     var tv = column.tableview;
     tv.keybind.bind("9", [], function() {
@@ -106,7 +110,25 @@ function event_setup (main) {
         in_reply_to.id = in_reply_to_tweets.first().status_id;
         // console.log(in_reply_to);
         KeyEvents.focus("compose_field");
-        $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length); 
+        $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
+      }
+    });
+    tv.keybind.bind("70", [], function() {
+      if(tv.selected.length !== 0) {
+        $.each(tv.selected, function(i, id) {
+          var target_obj = column.tweets[tv.index(id)];
+          var status_id = target_obj.retweeted_status ? target_obj.retweeted_values.status_id : target_obj.status_id;
+          main.accessor.call_method("favorite_tweet", [status_id]);
+        });
+      }
+    });
+    tv.keybind.bind("86", ["m", "s"], function() {
+      if(tv.selected.length !== 0) {
+        $.each(tv.selected, function(i, id) {
+          var target_obj = column.tweets[tv.index(id)];
+          var status_id = target_obj.retweeted_status ? target_obj.retweeted_values.status_id : target_obj.status_id;
+          main.accessor.call_method("retweet_tweet", [status_id]);
+        });
       }
     });
   });
@@ -159,11 +181,11 @@ Methods.prototype = {
       console.log(id, update_class, condition);
       $.each(this.column_view.columns, function(i, column) {
         if(condition === true) {
-          column.tableview.addClass("col_" + column.tableviews_id + "_utid_" + id, update_class)
+          column.tableview.addClass("col_" + column.tableviews_id + "_utid_" + id, update_class);
         } else if(condition === false) {
-          column.tableview.removeClass("col_" + column.tableviews_id + "_utid_" + id, update_class)
+          column.tableview.removeClass("col_" + column.tableviews_id + "_utid_" + id, update_class);
         }
-      }); 
+      });
     }
   }
 };
@@ -234,7 +256,7 @@ TimelineColumn.prototype = {
       // console.log(this.tableview.selected.length);
       if(this.detail_overlay_visible) {
         if(this.tableview.selected.length == 1) {
-          var html = makeup_display_html(this.tweets[this.tweet_ids.indexOf(this.tableview.selected[0])], default_templete, false);
+          var html = this.mekeup_overlay_html();
           if(this.tweet_detail_overlay.html() !== "") {
             this.change_detail_overlay(html);
           } else {
@@ -252,7 +274,7 @@ TimelineColumn.prototype = {
       if(this.detail_overlay_visible) {
         // console.log(this.tableview.selected.length);
         if(this.tableview.selected.length == 1) {
-          var html = makeup_display_html(this.tweets[this.tweet_ids.indexOf(this.tableview.selected[0])], default_templete, false);
+          var html = this.mekeup_overlay_html();
           // console.log(this.tweet_detail_overlay);
           // console.log(this.tweet_detail_overlay.html());
           if(this.tweet_detail_overlay.html() === "") {
@@ -265,6 +287,22 @@ TimelineColumn.prototype = {
         }
       }
     }, this);
+  },
+  mekeup_overlay_html: function() {
+    var values = this.tweets[this.index(this.tableview.selected[0])];
+    var additional_class = ["utid_" + values.status_id, "tid_" + (values.retweeted_status ? values.retweeted_status_id : values.status_id)];
+    if(values.retweeted_status ? values.retweeted_values.retweeted : values.retweeted) {
+      additional_class.push("retweeted");
+    }
+    if(values.retweeted_status ? values.retweeted_values.favorited : values.favorited) {
+      additional_class.push("favorited");
+    }
+    var insert_html = '<div class="item %classes%" item_id="%id%">%html%</div>'.replace_with({
+      "%classes%" : additional_class.join(" "),
+      "%id%" : "col_" + this.tableviews_id + "_utid_" + values.id,
+      "%html%" : makeup_display_html(values, default_templete, false)
+    });
+    return insert_html;
   },
   show_detail_overlay: function(html) {
     // console.log("show");

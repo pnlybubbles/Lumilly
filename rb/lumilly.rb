@@ -166,7 +166,7 @@ module Lumilly
           @config["columns"].each { |column|
             ActiveRecord::Base.connection_pool.with_connection {
               # p Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).map { |e| e[:status_id] }
-              tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(300, column["pattern"]).map(&:to_values).reverse], true)
+              tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)
             }
           }
           tr.call_function("gui_initialize_done", [])
@@ -179,6 +179,14 @@ module Lumilly
           else
             @client.update(text)
           end
+        }
+
+        tr.event("retweet_tweet") { |id|
+          @client.retweet(id);
+        }
+
+        tr.event("favorite_tweet") { |id|
+          @client.favorite(id);
         }
 
         tr.event("close") {

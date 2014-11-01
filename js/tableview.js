@@ -504,13 +504,13 @@ TableView.prototype = {
       // console.log(move_item_index_arr.diff(item_index_arr).length);
       if(move_item_index_arr.diff(item_index_arr).length > move_item_index_arr.length * 0.9) { // this is not the best
         if(now_calc_scrolltop > calc_scrolltop) {
-          console.log("up");
+          // console.log("up");
           this.view.scrollTop(this.view[0].scrollHeight - this.view.height());
         } else if(now_calc_scrolltop < calc_scrolltop) {
-          console.log("down");
+          // console.log("down");
           this.view.scrollTop(0);
         } else {
-          console.log("fix");
+          // console.log("fix");
         }
         this.view.stop(true, false).animate({scrollTop : real_scrolltop}, 200, 'easeOutQuad', callback);
       } else {
