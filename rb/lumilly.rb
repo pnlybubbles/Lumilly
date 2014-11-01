@@ -266,12 +266,17 @@ module Lumilly
         obj = Tweet.where(:status_id => res.id)[0]
         if obj
           if obj.retweeted_status
-            obj_r = Tweet.where(:status_id => obj.retweeted_status_id)[0]
+            obj_retweet_source = Tweet.where(:status_id => obj.retweeted_status_id)[0]
             if obj.user_id == @mydata[:id]
-              obj_r.retweeted = false
+              obj_retweet_source.retweeted = false
             end
-            obj_r.retweet_count -= 1
-            obj_r.save
+            obj_retweet_source.retweet_count -= 1
+            obj_retweet_source.save
+          else
+            obj_retweets = Twitter.where(:retweeted_id => res.id)
+            obj_retweets.each { |obj_r|
+               obj_r.destroy
+            }
           end
           obj.destroy
         end

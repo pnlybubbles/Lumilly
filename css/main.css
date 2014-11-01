@@ -36,8 +36,8 @@ body {
   display: none;
   position: absolute;
   font-size: 13px;
-  right: 8px;
-  bottom: 6px;
+  right: 12px;
+  bottom: 3px;
   font-weight: bold;
   color: rgb(130, 130, 130);
 }
