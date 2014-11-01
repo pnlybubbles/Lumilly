@@ -88,24 +88,26 @@ function event_setup (main) {
       KeyEvents.focus("compose_field");
     });
     tv.keybind.bind("13", [], function() {
-      var in_reply_to_tweets = [];
-      $.each(tv.selected, function(i, id) {
-        var tweet = column.tweets[column.index(id)];
-        var base_tweet = null;
-        if(tweet.retweeted_status) {
-          base_tweet = tweet.retweeted_values;
-        } else {
-          base_tweet = tweet;
-        }
-        in_reply_to_tweets.push(base_tweet);
-      });
-      console.log(in_reply_to_tweets);
-      $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_field").val());
-      in_reply_to.screen_name = in_reply_to_tweets.first().screen_name;
-      in_reply_to.id = in_reply_to_tweets.first().status_id;
-      // console.log(in_reply_to);
-      KeyEvents.focus("compose_field");
-      $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
+      if(tv.selected.length !== 0) {
+        var in_reply_to_tweets = [];
+        $.each(tv.selected, function(i, id) {
+          var tweet = column.tweets[column.index(id)];
+          var base_tweet = null;
+          if(tweet.retweeted_status) {
+            base_tweet = tweet.retweeted_values;
+          } else {
+            base_tweet = tweet;
+          }
+          in_reply_to_tweets.push(base_tweet);
+        });
+        console.log(in_reply_to_tweets);
+        $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_field").val());
+        in_reply_to.screen_name = in_reply_to_tweets.first().screen_name;
+        in_reply_to.id = in_reply_to_tweets.first().status_id;
+        // console.log(in_reply_to);
+        KeyEvents.focus("compose_field");
+        $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length); 
+      }
     });
   });
 }
