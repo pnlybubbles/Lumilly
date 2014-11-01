@@ -166,7 +166,7 @@ module Lumilly
           @config["columns"].each { |column|
             ActiveRecord::Base.connection_pool.with_connection {
               # p Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).map { |e| e[:status_id] }
-              tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).reverse], true)
+              tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(300, column["pattern"]).map(&:to_values).reverse], true)
             }
           }
           tr.call_function("gui_initialize_done", [])
@@ -254,6 +254,11 @@ module Lumilly
           obj = Tweet.where(:status_id => res.retweeted_status.id)[0]
           if res.user.id == @mydata[:id]
             obj.retweeted = true
+            @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "retweet", true], true)
+            obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
+            obj_retweets.each { |obj_r|
+              @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", true], true)
+            }
           end
           obj.retweet_count += 1
           obj.save
@@ -269,6 +274,11 @@ module Lumilly
             obj_retweet_source = Tweet.where(:status_id => obj.retweeted_status_id)[0]
             if obj.user_id == @mydata[:id]
               obj_retweet_source.retweeted = false
+              @accessor.tr.call_function("update_tweet_status", [obj_retweet_source.status_id.to_s, "retweet", false], true)
+              obj_retweets = Tweet.where(:retweeted_status_id => obj_retweet_source.status_id)
+              obj_retweets.each { |obj_r|
+                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", false], true)
+              }
             end
             obj_retweet_source.retweet_count -= 1
             obj_retweet_source.save
@@ -293,6 +303,11 @@ module Lumilly
           if obj
             if res.source.id == @mydata[:id]
               obj.favorited = true
+              @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", true], true)
+              obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
+              obj_retweets.each { |obj_r|
+                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", true], true)
+              }
             end
             obj.favorite_count += 1
             obj.save
@@ -304,6 +319,11 @@ module Lumilly
           if obj
             if res.source.id == @mydata[:id]
               obj.favorited = false
+              @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", false], true)
+              obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
+              obj_retweets.each { |obj_r|
+                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", false], true)
+              }
             end
             obj.favorite_count -= 1
             obj.save

@@ -52,6 +52,32 @@ TableView.prototype = {
   find: function(selector) {
     return this.item(this.view.children(selector).attr("item_id"));
   },
+  addClass: function(id_index, classes) {
+    console.log(id_index);
+    if(!(classes instanceof Array)) {
+      classes = [classes];
+    }
+    var item = this.item(id_index);
+    if(item) {
+      console.log("a", classes);
+      $.each(classes, function(i, class_name) {
+        item.addClass(class_name);
+      });
+    }
+  },
+  removeClass: function(id_index, classes) {
+    console.log(id_index);
+    if(!(classes instanceof Array)) {
+      classes = [classes];
+    }
+    var item = this.item(id_index);
+    if(item) {
+      console.log("r", classes);
+      $.each(classes, function(i, class_name) {
+        item.removeClass(class_name);
+      });
+    }
+  },
   insert: function(html, id, index, classes) {
     id = String(id);
     if(id === undefined) {
@@ -840,6 +866,6 @@ Item.prototype = {
     if(this.elm) {
       this.elm.removeClass(class_name);
     }
-    this.html = this.html.replace(/\s?selected\s?/, "");
+    this.html = this.html.replace(new RegExp("\s?" + class_name + "\s?"), "");
   }
 };

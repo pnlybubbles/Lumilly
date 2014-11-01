@@ -1,5 +1,5 @@
 var default_templete = '\
-<div class="item_container %aditional_class%">\
+<div class="item_container %additional_class%">\
 	<div class="left_item">\
 		<div class="img_wrap">\
 			<div class="profile_image" style="background-image: url(\'%profile_image_url%\')">\
