@@ -21,10 +21,11 @@ body {
   position: absolute;
   background-image: url("./assets/Lumilly_logo.png");
   background-size: contain;
-  top: calc(50% - 50px);
-  left: calc(50% - 160px);
-  width: 320px;
-  height: 100px;
+  top: calc(50% - 100px);
+  left: calc(50% - 320px);
+  opacity: 0.7;
+  width: 640px;
+  height: 200px;
 }
 
 /* icomoon */

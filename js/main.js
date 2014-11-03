@@ -492,14 +492,14 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     additional_class.push("retweeted_status");
   }
   // construct media thumbnail html
-  media_thumb_html = "";
+  media_thumb_html = [];
   media_thumb_html_templete = '<a href="%media_img_url%" target="_blank" class="media_img_wrap"><div class="media_thumbnail_image" style="background-image: url(\'%media_thumbnail_image_url%\')"></div></a>';
   if(data.extended_entities) {
     $.each(data.extended_entities.media, function(i, media) {
-      media_thumb_html += media_thumb_html_templete.replace_with({
+      media_thumb_html.push(media_thumb_html_templete.replace_with({
         "%media_thumbnail_image_url%" : media.media_url,
         "%media_img_url%" : media.expanded_url
-      });
+      }));
     });
     additional_class.push("media_thumbnail");
   }
@@ -516,7 +516,7 @@ function makeup_display_html (base_data, html_templete, mini_view) {
     "%retweeted_status_style%" : retweeted_status_style,
     "%retweeted_by%" : retweeted_by,
     "%additional_class%" : additional_class.join(" "),
-    "%media_thumb%" : media_thumb_html
+    "%media_thumb%" : media_thumb_html.reverse().join("")
   });
   return item_html;
 }
