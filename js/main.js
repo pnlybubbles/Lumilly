@@ -140,17 +140,47 @@ function event_setup (main) {
   });
 }
 
+ENABLE_SPLASH_SCREEN = true;
+
 function Methods () {
   this.initialize.apply(this, arguments);
 }
 
 Methods.prototype = {
   initialize: function() {
+    if(ENABLE_SPLASH_SCREEN) { this.show_splash_screen(); }
     this.accessor = new Accessor(this);
     this.column_view = new ColumnView();
   },
   test: function(t) {
     console.log(t);
+  },
+  show_splash_screen: function() {
+    $("body").append('<div class="splash_screen"><div class="logo"></div></div>');
+    $(".wrapper").css({
+      "-webkit-filter" : "blur(60px)"
+    });
+    $(".splash_screen .logo").hide().fadeIn(1000);
+  },
+  hide_splash_screen: function() {
+    $({"radius" : 60, "_opacity" : 1}).animate({
+      "radius" : 0,
+      "_opacity" : 0
+    },{
+      duration : 4000,
+      easing: "easeInOutExpo",
+      step: function() {
+        $(".wrapper").css({
+          "-webkit-filter" : "blur(" + this.radius + "px)"
+        });
+        $(".splash_screen").css({
+          "opacity" : this._opacity
+        });
+      },
+      complete: function() {
+        $(".splash_screen").hide();
+      }
+    });
   },
   create_timeline_column: function(column) {
     this.column_view.new_timeline_column(this.column_view.columns.length, column.id);
@@ -158,6 +188,8 @@ Methods.prototype = {
   },
   gui_initialize_done: function() {
     event_setup(this);
+    if(ENABLE_SPLASH_SCREEN) { this.hide_splash_screen(); }
+    console.log("initialize complete");
   },
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
