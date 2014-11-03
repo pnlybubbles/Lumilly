@@ -189,6 +189,10 @@ module Lumilly
           @client.favorite(id);
         }
 
+        tr.event("unfavorite_tweet") { |id|
+          @client.unfavorite(id);
+        }
+
         tr.event("close") {
           puts "closed"
         }

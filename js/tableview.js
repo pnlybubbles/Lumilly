@@ -53,26 +53,22 @@ TableView.prototype = {
     return this.item(this.view.children(selector).attr("item_id"));
   },
   addClass: function(id_index, classes) {
-    console.log(id_index);
     if(!(classes instanceof Array)) {
       classes = [classes];
     }
     var item = this.item(id_index);
     if(item) {
-      console.log("a", classes);
       $.each(classes, function(i, class_name) {
         item.addClass(class_name);
       });
     }
   },
   removeClass: function(id_index, classes) {
-    console.log(id_index);
     if(!(classes instanceof Array)) {
       classes = [classes];
     }
     var item = this.item(id_index);
     if(item) {
-      console.log("r", classes);
       $.each(classes, function(i, class_name) {
         item.removeClass(class_name);
       });
@@ -152,6 +148,7 @@ TableView.prototype = {
     // console.log(this.view[0].scrollHeight);
   },
   remove: function(id_index) {
+    console.log("remove", id_index);
     var index = this.index(id_index);
     if(index !== undefined) {
       this.deselect(index);

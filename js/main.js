@@ -116,16 +116,22 @@ function event_setup (main) {
     tv.keybind.bind("70", [], function() {
       if(tv.selected.length !== 0) {
         $.each(tv.selected, function(i, id) {
-          var target_obj = column.tweets[tv.index(id)];
-          var status_id = target_obj.retweeted_status ? target_obj.retweeted_values.status_id : target_obj.status_id;
-          main.accessor.call_method("favorite_tweet", [status_id]);
+          var target_obj = column.tweets[column.index(id)];
+          if(target_obj.retweeted_status) {
+            target_obj = target_obj.retweeted_values;
+          }
+          if(target_obj.favorited) {
+            main.accessor.call_method("unfavorite_tweet", [target_obj.status_id]);
+          } else {
+            main.accessor.call_method("favorite_tweet", [target_obj.status_id]);
+          }
         });
       }
     });
     tv.keybind.bind("86", ["m", "s"], function() {
       if(tv.selected.length !== 0) {
         $.each(tv.selected, function(i, id) {
-          var target_obj = column.tweets[tv.index(id)];
+          var target_obj = column.tweets[column.index(id)];
           var status_id = target_obj.retweeted_status ? target_obj.retweeted_values.status_id : target_obj.status_id;
           main.accessor.call_method("retweet_tweet", [status_id]);
         });
@@ -164,7 +170,7 @@ Methods.prototype = {
   },
   remove_tweet: function(id) {
     $.each(this.column_view.columns, function(i, column) {
-      column.tableview.remove("col_" + column.tableviews_id + "_utid_" + id);
+      column.remove_tweet(id);
     });
   },
   update_tweet_status: function(id, status, condition) {
@@ -178,13 +184,9 @@ Methods.prototype = {
         break;
     }
     if(update_class) {
-      console.log(id, update_class, condition);
+      // console.log(id, update_class, condition);
       $.each(this.column_view.columns, function(i, column) {
-        if(condition === true) {
-          column.tableview.addClass("col_" + column.tableviews_id + "_utid_" + id, update_class);
-        } else if(condition === false) {
-          column.tableview.removeClass("col_" + column.tableviews_id + "_utid_" + id, update_class);
-        }
+        column.update_tweet_class(id, update_class, condition);
       });
     }
   }
@@ -386,12 +388,32 @@ TimelineColumn.prototype = {
     this.tweets.splice(index, 0, values);
     this.tweet_ids.splice(index, 0, "col_" + this.tableviews_id + "_utid_" + utid);
   },
+  remove_tweet: function(id_index) {
+    var index = this.index(id_index);
+    if(index) {
+      this.tweets.splice(index, 1);
+      this.tweet_ids.splice(index, 1);
+      this.tableview.remove(index);
+    }
+  },
+  update_tweet_class: function(id_index, update_class, condition) {
+    var index = this.index(id_index);
+    if((condition === true || condition === false) && index) {
+      this.tableview.addClass(index, update_class);
+      if(this.tweets[index]["retweeted_status"]) {
+        this.tweets[index]["retweeted_values"][update_class] = condition;
+      } else {
+        this.tweets[index][update_class] = condition;
+      }
+    }
+  },
   index: function(id_index) {
     var index = id_index;
-    if(id_index !== parseInt(id_index, 10)) {
-      index = this.tweet_ids.indexOf(id_index);
-    } else if(index < 0 || this.tweet_ids.length - 1 < index) {
-      index = undefined;
+    if((id_index !== parseInt(id_index, 10)) || (index < 0 || this.tweet_ids.length - 1 < index)) {
+      index = this.tweet_ids.indexOf(String(id_index));
+      if(index == -1) {
+        index = this.tweet_ids.indexOf("col_" + this.tableviews_id + "_utid_" + id_index);
+      }
     }
     return index == -1 ? undefined : index;
   }
