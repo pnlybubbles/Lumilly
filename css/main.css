@@ -85,6 +85,7 @@ body {
   -webkit-box-orient: horizontal;
      -moz-box-orient: horizontal;
           box-orient: horizontal;
+  cursor: default;
 }
 
 
@@ -194,6 +195,10 @@ body {
   font-size: 12px;
 }
 
+.item_container:not(.mini) .text {
+  cursor: auto;
+}
+
 .text a {
   color: rgb(28, 28, 28);
   text-decoration: none;
@@ -232,7 +237,7 @@ body {
   float: left;
 }
 
-.retweeted_status .retweeted_by [class^="icon-"], [class*=" icon-"] {
+.retweeted_status .retweeted_by .icon-retweet {
   vertical-align: top;
   display: inline-block;
   padding: 4px 0 5px 0;
