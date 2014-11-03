@@ -150,10 +150,21 @@ TableView.prototype = {
   remove: function(id_index) {
     console.log("remove", id_index);
     var index = this.index(id_index);
+    var id = this.id_list[index];
     if(index !== undefined) {
       this.deselect(index);
       if(this[index].elm) {
         this[index].elm.remove();
+        this[index].elm = undefined;
+        var item_height = this.find(":first").elm.outerHeight();
+        var scroll_top = this.view.scrollTop();
+        if(scroll_top > item_height * (this.visibled.indexOf(id) + 1)) {
+          this.view.scrollTop(scroll_top - item_height);
+        }
+        this.visibled.splice(this.visibled.indexOf(id), 1);
+      }
+      if(this.selected.indexOf(id) !== -1) {
+        this.selected.splice(this.selected.indexOf(id), 1);
       }
       this[index].initialized = false;
       this.splice(index, 1);
