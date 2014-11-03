@@ -35,7 +35,8 @@ TableView.prototype = {
     this.config = {
       visible_limit : 1500
     };
-    this.mouse_down = function(index) {
+    this.mouse_down = function(id) {
+      var index = this.index(id)
       if(event.shiftKey) {
         this.cursor.expand(index);
       } else if(event.metaKey) {
@@ -150,7 +151,7 @@ TableView.prototype = {
   remove: function(id_index) {
     console.log("remove", id_index);
     var index = this.index(id_index);
-    var id = this.id_list[index];
+    var id = this[index].id;
     if(index !== undefined) {
       this.deselect(index);
       if(this[index].elm) {
@@ -188,13 +189,13 @@ TableView.prototype = {
     var index = this.index(id_index);
     // console.log(index);
     if(index !== undefined) {
-      this.selected.push(this.id_list[index]);
+      this.selected.push(this[index].id);
       this.selected = this.selected.unique().map(function(v) {
         return this.id_list.indexOf(v);
       }, this).sort(function(a, b) {
         return a - b;
       }).map(function(v) {
-        return this.id_list[v];
+        return this[v].id;
       }, this);
       this[index].selected = true;
       this[index].addClass("selected");
@@ -208,7 +209,7 @@ TableView.prototype = {
   deselect: function(id_index) {
     var index = this.index(id_index);
     if(index !== undefined) {
-      var selected_index = this.selected.indexOf(this.id_list[index]);
+      var selected_index = this.selected.indexOf(this[index].id);
       if(selected_index != -1) {
         if(this.selected[selected_index] == this.cursor.base.id && this.selected.length !== 1) {
           if(selected_index >= this.selected.length / 2) {
@@ -282,8 +283,9 @@ TableView.prototype = {
           this[index].elm = undefined;
           return false;
         } else {
+          var id = this[index].id;
           this[index].elm.bind("mousedown", {this_obj: this}, function(event) {
-            event.data.this_obj.mouse_down.apply(event.data.this_obj, [index]);
+            event.data.this_obj.mouse_down.apply(event.data.this_obj, [id]);
           });
           return this[index];
         }
