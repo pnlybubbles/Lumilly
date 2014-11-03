@@ -18,8 +18,8 @@ var default_templete = '\
 			<div class="media_imgs_container">%media_thumb%</div>\
 			<div class="retweeted_by">%retweeted_by%</div>\
 			<div class="statuses">\
-				<div class="status favorite_symbol">FAV</div>\
-				<div class="status retweet_symbol">RT</div>\
+				<div class="status favorite_symbol"><span class="icon-favorite"></span></div>\
+				<div class="status retweet_symbol"><span class="icon-retweet"></span></div>\
 			</div>\
 		</div>\
 	</div>\

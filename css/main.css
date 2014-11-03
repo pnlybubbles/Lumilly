@@ -5,6 +5,12 @@ body {
   /*-webkit-user-select: none;*/
 }
 
+/* icomoon */
+
+[class^="icon-"], [class*=" icon-"] {
+  font-size: 140%;
+}
+
 /* view containers */
 
 .wrapper {
@@ -220,11 +226,24 @@ body {
   color: rgb(255, 255, 255);
   font-size: 10px;
   margin-top: 10px;
-  padding: 5px 6px 3px 6px;
+  padding: 0px 7px 0px 7px;
   background-color: rgba(47, 144, 229, 0.6);
   border-radius: 3px;
   float: left;
 }
+
+.retweeted_status .retweeted_by [class^="icon-"], [class*=" icon-"] {
+  vertical-align: top;
+  display: inline-block;
+  padding: 4px 0 5px 0;
+}
+
+.retweeted_status .retweeted_by .retweeted_by_screen_name {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0 0 0 4px;
+  padding: 5px 0 0 0;
+} 
 
 .created_at {
   position: absolute;
@@ -382,20 +401,22 @@ body {
 
 .status {
   display: none;
-  font-size: 10px;
+  font-size: 9px;
   color: rgb(255, 255, 255);
   margin-left: 7px;
-  padding: 3px 6px 0px 6px;
+  /*padding: 2px 7px 2px 7px;*/
   border-radius: 3px;
   float: left;
 }
 
 .favorited .favorite_symbol {
   display: inline-block;
+  padding: 3px 7px 2px 7px;
 }
 
 .retweeted .retweet_symbol {
   display: inline-block;
+  padding: 2px 7px 3px 7px;
 }
 
 .favorite_symbol {

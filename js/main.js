@@ -456,7 +456,7 @@ function makeup_display_html (base_data, html_templete, mini_view) {
   var retweeted_by = "";
   if(base_data.retweeted_status) {
     retweeted_status_style = "background-image: url('" + base_data.profile_image_url.replace(/_normal/, "") + "')";
-    retweeted_by = "RT: " + base_data.screen_name;
+    retweeted_by = '<span class="icon-retweet"></span><span class="retweeted_by_screen_name">' + base_data.screen_name + "</span>";
     additional_class.push("retweeted_status");
   }
   // construct media thumbnail html
