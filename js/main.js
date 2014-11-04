@@ -189,8 +189,8 @@ Methods.prototype = {
         "radius" : 0,
         "_opacity" : 0
       },{
-        duration : 4000,
-        easing: "easeInOutExpo",
+        duration : 3000,
+        easing: "easeOutCubic",
         step: function() {
           $(".wrapper").css({
             "-webkit-filter" : "blur(" + this.radius + "px)"
@@ -200,7 +200,7 @@ Methods.prototype = {
           });
         },
         complete: function() {
-          $(".splash_screen").hide();
+          $(".splash_screen").remove();
         }
       });
     }
@@ -252,7 +252,7 @@ Methods.prototype = {
         break;
     }
     if(update_class) {
-      console.log(id, update_class, condition);
+      // console.log(id, update_class, condition);
       $.each(this.column_view.columns, function(i, column) {
         column.update_tweet_class(id, update_class, condition);
       });
