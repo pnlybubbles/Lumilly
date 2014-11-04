@@ -25,7 +25,7 @@ function setup () {
 }
 
 // gui initialize done
-function event_setup (main) {
+function event_setup (main, keymap) {
   // global KeyEvent focus
   var before_focused_column = null;
   KeyEvents.on_focus(function(blur_id) {
@@ -58,7 +58,8 @@ function event_setup (main) {
     $(".text_field").blur();
     $(".text_field_counter").hide();
   });
-  text_field_keybind.bind("13", ["c"], function() {
+  // post tweet
+  text_field_keybind.bind(keymap["post_tweet"].key, keymap["post_tweet"].with_key, function() {
     var text = $(".text_field").val();
     var count = check_update_count(text, false);
     if(count <= 140 && count !== 0) {
@@ -76,7 +77,8 @@ function event_setup (main) {
       };
     }
   });
-  text_field_keybind.bind("9", [], function() {
+  // toggle focus textarea or tableview
+  text_field_keybind.bind(keymap["toggle_focus"].key, keymap["toggle_focus"].with_key, function() {
     if(before_focused_column) {
       KeyEvents.focus(before_focused_column);
     }
@@ -88,10 +90,12 @@ function event_setup (main) {
   // tableviews key events
   $.each(main.column_view.columns, function(i, column) {
     var tv = column.tableview;
-    tv.keybind.bind("9", [], function() {
+    // toggle focus textarea or tableview
+    tv.keybind.bind(keymap["toggle_focus"].key, keymap["toggle_focus"].with_key, function() {
       KeyEvents.focus("compose_field");
     });
-    tv.keybind.bind("13", [], function() {
+    // create reply
+    tv.keybind.bind(keymap["create_reply"].key, keymap["create_reply"].with_key, function() {
       if(tv.selected.length !== 0) {
         var in_reply_to_tweets = [];
         $.each(tv.selected, function(i, id) {
@@ -113,7 +117,8 @@ function event_setup (main) {
         $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
       }
     });
-    tv.keybind.bind("70", [], function() {
+    // toggle favorite
+    tv.keybind.bind(keymap["toggle_favorite"].key, keymap["toggle_favorite"].with_key, function() {
       if(tv.selected.length !== 0) {
         $.each(tv.selected, function(i, id) {
           var target_obj = column.tweets[column.index(id)];
@@ -128,7 +133,8 @@ function event_setup (main) {
         });
       }
     });
-    tv.keybind.bind("86", ["m", "s"], function() {
+    // toggle retweet
+    tv.keybind.bind(keymap["toggle_retweet"].key, keymap["toggle_retweet"].with_key, function() {
       if(tv.selected.length !== 0) {
         $.each(tv.selected, function(i, id) {
           var target_obj = column.tweets[column.index(id)];
@@ -137,7 +143,8 @@ function event_setup (main) {
         });
       }
     });
-    tv.keybind.bind("35", [], function() {
+    // goto end item
+    tv.keybind.bind(keymap["goto_end"].key, keymap["goto_end"].with_key, function() {
       tv.cursor.move(tv.last().index());
       tv.cursor.update_scroll(function() {
         tv.render();
@@ -200,8 +207,11 @@ Methods.prototype = {
   error: function() {
     this.change_activity_message("[ERROR] lumilly.rb is not working");
   },
+  set_keybind_map: function(keybind_map) {
+    this.change_activity_message("Setting keybind...");
+    event_setup(this, keybind_map);
+  },
   gui_initialize_done: function() {
-    event_setup(this);
     this.hide_splash_screen();
     this.change_activity_message("Initialize completed");
     console.log("initialize completed");

@@ -1,12 +1,37 @@
 columns:
   - id: timeline
-    name: Timeline
+    name: "Timeline"
     pattern: all
 
   - id: mention
-    name: Mention
+    name: "Mention"
     pattern: mention
 
   - id: sample
-    name: Sample
+    name: "Sample"
     pattern: "きらら OR ゆるゆり OR ごちうさ OR ご注文はうさぎですか OR きんモザ OR きんいろモザイク OR あわあわ"
+
+keybind:
+  post_tweet:
+    key: 13 # enter
+    with_key: "ctrl"
+
+  create_reply:
+    key: 13 # enter
+    with_key: ""
+
+  toggle_focus:
+    key: 9  # tab
+    with_key: ""
+
+  toggle_favorite:
+    key: 70 # f
+    with_key: ""
+
+  toggle_retweet:
+    key: 86 # v
+    with_key: "meta,shift"
+
+  goto_end:
+    key: 35 # end
+    with_key: ""

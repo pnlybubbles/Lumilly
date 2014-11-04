@@ -166,6 +166,12 @@ module Lumilly
 
     def load_config(yaml_dir)
       @config = YAML.load_file(File.expand_path(yaml_dir))
+      @config["keybind"] = @config["keybind"].inject({}) { |h, (name, v)|
+        h[name] = {}
+        h[name]["key"] = v["key"]
+        h[name]["with_key"] = v["with_key"].to_s.split(",").map { |w| w.strip[0, 1] }
+        h
+      }
     end
 
     def setup_tweets
@@ -195,7 +201,10 @@ module Lumilly
               tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)
             }
           }
+          tr.call_function("set_keybind_map", [@config["keybind"]])
+          puts "set keybind mapping"
           tr.call_function("gui_initialize_done", [])
+          puts "gui initialize done"
         }
 
         tr.event("update_tweet") { |text, in_reply_to_status_id|
