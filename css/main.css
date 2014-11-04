@@ -28,6 +28,16 @@ body {
   height: 200px;
 }
 
+.splash_screen .activity_message {
+  position: absolute;
+  top: calc(50% + 120px);
+  left: calc(50% - 200px);
+  width: 400px;
+  font-size: 15px;
+  color: rgb(134, 134, 134);
+  text-align: center;
+}
+
 /* icomoon */
 
 [class^="icon-"], [class*=" icon-"] {

@@ -162,8 +162,6 @@ module Lumilly
           puts "loaded"
           @config["columns"].each { |column|
             puts @accessor.tr.call_function("create_timeline_column", column);
-          }
-          @config["columns"].each { |column|
             ActiveRecord::Base.connection_pool.with_connection {
               # p Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).map { |e| e[:status_id] }
               tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)

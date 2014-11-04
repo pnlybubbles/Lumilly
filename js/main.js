@@ -154,7 +154,7 @@ function Methods () {
 
 Methods.prototype = {
   initialize: function() {
-    if(ENABLE_SPLASH_SCREEN) { this.show_splash_screen(); }
+    this.show_splash_screen();
     this.accessor = new Accessor(this);
     this.column_view = new ColumnView();
   },
@@ -162,40 +162,54 @@ Methods.prototype = {
     console.log(t);
   },
   show_splash_screen: function() {
-    $("body").append('<div class="splash_screen"><div class="logo"></div></div>');
-    $(".wrapper").css({
-      "-webkit-filter" : "blur(60px)"
-    });
-    $(".splash_screen .logo").hide().fadeIn(1000);
+    if(ENABLE_SPLASH_SCREEN) {
+      $("body").append('<div class="splash_screen"><div class="logo"></div><div class="activity_message"></div></div>');
+      $(".wrapper").css({
+        "-webkit-filter" : "blur(60px)"
+      });
+      $(".splash_screen *").hide().fadeIn(1000);
+    }
   },
   hide_splash_screen: function() {
-    $({"radius" : 60, "_opacity" : 1}).animate({
-      "radius" : 0,
-      "_opacity" : 0
-    },{
-      duration : 4000,
-      easing: "easeInOutExpo",
-      step: function() {
-        $(".wrapper").css({
-          "-webkit-filter" : "blur(" + this.radius + "px)"
-        });
-        $(".splash_screen").css({
-          "opacity" : this._opacity
-        });
-      },
-      complete: function() {
-        $(".splash_screen").hide();
-      }
-    });
+    if(ENABLE_SPLASH_SCREEN) {
+      $({"radius" : 60, "_opacity" : 1}).animate({
+        "radius" : 0,
+        "_opacity" : 0
+      },{
+        duration : 4000,
+        easing: "easeInOutExpo",
+        step: function() {
+          $(".wrapper").css({
+            "-webkit-filter" : "blur(" + this.radius + "px)"
+          });
+          $(".splash_screen").css({
+            "opacity" : this._opacity
+          });
+        },
+        complete: function() {
+          $(".splash_screen").hide();
+        }
+      });
+    }
   },
-  create_timeline_column: function(column) {
-    this.column_view.new_timeline_column(this.column_view.columns.length, column.id);
-    return "created column: " + column.id;
+  change_activity_message: function(msg) {
+    if(ENABLE_SPLASH_SCREEN) {
+      $(".splash_screen .activity_message").text(msg);
+    }
+  },
+  error: function() {
+    this.change_activity_message("[ERROR] lumilly.rb is not working");
   },
   gui_initialize_done: function() {
     event_setup(this);
-    if(ENABLE_SPLASH_SCREEN) { this.hide_splash_screen(); }
-    console.log("initialize complete");
+    this.hide_splash_screen();
+    this.change_activity_message("Initialize completed");
+    console.log("initialize completed");
+  },
+  create_timeline_column: function(column) {
+    this.change_activity_message("creating column \"" + column.id + "\"...");
+    this.column_view.new_timeline_column(this.column_view.columns.length, column.id);
+    return "created column: " + column.id;
   },
   add_tweet: function(column_id, values) {
     // console.log(column_id, values);
