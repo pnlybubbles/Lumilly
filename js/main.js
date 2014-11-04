@@ -137,6 +137,12 @@ function event_setup (main) {
         });
       }
     });
+    tv.keybind.bind("35", [], function() {
+      tv.cursor.move(tv.last().index());
+      tv.cursor.update_scroll(function() {
+        tv.render();
+      });
+    });
   });
 }
 
