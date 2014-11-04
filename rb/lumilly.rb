@@ -165,6 +165,7 @@ module Lumilly
     end
 
     def load_config(yaml_dir)
+      raise "Error: setup config (config.yml not found)" unless File.exist?(File.expand_path(yaml_dir))
       @config = YAML.load_file(File.expand_path(yaml_dir))
       @config["keybind"] = @config["keybind"].inject({}) { |h, (name, v)|
         h[name] = {}
