@@ -216,16 +216,27 @@ module Lumilly
           end
         }
 
+        tr.event("delete_tweet") { |id|
+          @client.destroy_status(id)
+        }
+
         tr.event("retweet_tweet") { |id|
-          @client.retweet(id);
+          @client.retweet(id)
+        }
+
+        tr.event("unretweet_tweet") { |id|
+          obj = Tweet.where(:user_id => @mydata.id, :retweeted_status_id => id)[0]
+          if obj
+            @client.destroy_status(obj.status_id)
+          end
         }
 
         tr.event("favorite_tweet") { |id|
-          @client.favorite(id);
+          @client.favorite(id)
         }
 
         tr.event("unfavorite_tweet") { |id|
-          @client.unfavorite(id);
+          @client.unfavorite(id)
         }
 
         tr.event("close") {

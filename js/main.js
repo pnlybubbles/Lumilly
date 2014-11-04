@@ -138,8 +138,14 @@ function event_setup (main, keymap) {
       if(tv.selected.length !== 0) {
         $.each(tv.selected, function(i, id) {
           var target_obj = column.tweets[column.index(id)];
-          var status_id = target_obj.retweeted_status ? target_obj.retweeted_values.status_id : target_obj.status_id;
-          main.accessor.call_method("retweet_tweet", [status_id]);
+          if(target_obj.retweeted_status) {
+            target_obj = target_obj.retweeted_values;
+          }
+          if(target_obj.retweeted) {
+            main.accessor.call_method("unretweet_tweet", [target_obj.status_id]);
+          } else {
+            main.accessor.call_method("retweet_tweet", [target_obj.status_id]);
+          }
         });
       }
     });
@@ -246,7 +252,7 @@ Methods.prototype = {
         break;
     }
     if(update_class) {
-      // console.log(id, update_class, condition);
+      console.log(id, update_class, condition);
       $.each(this.column_view.columns, function(i, column) {
         column.update_tweet_class(id, update_class, condition);
       });
@@ -461,7 +467,11 @@ TimelineColumn.prototype = {
   update_tweet_class: function(id_index, update_class, condition) {
     var index = this.index(id_index);
     if((condition === true || condition === false) && index) {
-      this.tableview.addClass(index, update_class);
+      if(condition) {
+        this.tableview.addClass(index, update_class);
+      } else {
+        this.tableview.removeClass(index, update_class);
+      }
       if(this.tweets[index]["retweeted_status"]) {
         this.tweets[index]["retweeted_values"][update_class] = condition;
       } else {
