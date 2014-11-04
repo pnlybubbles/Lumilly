@@ -113,16 +113,25 @@ module Accessor
   end
 end
 
+$DEBUG_ = false
+
 module Lumilly
   class App
     attr_reader :client, :stream_client
 
     def initialize(token_dir, config_dir)
-      initialize_twitter(token_dir)
+      # initialize @config
       load_config(config_dir)
-      @accessor = Accessor::Socket.new
+      # initialize @client, @stream_client
+      initialize_twitter(token_dir)
+      # connect to db
       Lumilly::Tweet.setup(@mydata)
+      # get minimum required tweets from Twitter
+      setup_tweets()
+      # start streaming
       start_streaming()
+      # initialize websocket
+      @accessor = Accessor::Socket.new
     end
 
     def initialize_twitter(yaml_dir)
@@ -143,13 +152,33 @@ module Lumilly
         config.access_token_secret = key_data["access_token_secret"]
       end
 
-      # @mydata = @client.verify_credentials.to_h
-      @mydata = {:id => 322116499}
-      puts "user id: #{@mydata[:id]}"
+      if $DEBUG_
+        @mydata = {:id => 322116499}
+        def @mydata.method_missing(meth, *argu)
+          return self[meth.to_sym]
+        end
+      else
+        puts "getting verify credentials..."
+        @mydata = @client.verify_credentials
+      end
+      puts "user id: #{@mydata.id}"
     end
 
     def load_config(yaml_dir)
       @config = YAML.load_file(File.expand_path(yaml_dir))
+    end
+
+    def setup_tweets
+      unless $DEBUG_
+        puts "getting home timeline..."
+        @client.home_timeline(:count => 200).each { |t|
+          Tweet.add(t)
+        }
+        puts "getting mention timeline..."
+        @client.mentions(:count => 200).each { |t|
+          Tweet.add(t)
+        }
+      end
     end
 
     def setup_events
@@ -163,7 +192,6 @@ module Lumilly
           @config["columns"].each { |column|
             puts @accessor.tr.call_function("create_timeline_column", column);
             ActiveRecord::Base.connection_pool.with_connection {
-              # p Lumilly::Tweet.get_latest(100, column["pattern"]).map(&:to_values).map { |e| e[:status_id] }
               tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)
             }
           }
@@ -262,7 +290,7 @@ module Lumilly
       if res.retweeted_status?
         ActiveRecord::Base.connection_pool.with_connection {
           obj = Tweet.where(:status_id => res.retweeted_status.id)[0]
-          if res.user.id == @mydata[:id]
+          if res.user.id == @mydata.id
             obj.retweeted = true
             @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "retweet", true], true)
             obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
@@ -282,7 +310,7 @@ module Lumilly
         if obj
           if obj.retweeted_status
             obj_retweet_source = Tweet.where(:status_id => obj.retweeted_status_id)[0]
-            if obj.user_id == @mydata[:id]
+            if obj.user_id == @mydata.id
               obj_retweet_source.retweeted = false
               @accessor.tr.call_function("update_tweet_status", [obj_retweet_source.status_id.to_s, "retweet", false], true)
               obj_retweets = Tweet.where(:retweeted_status_id => obj_retweet_source.status_id)
@@ -311,7 +339,7 @@ module Lumilly
         ActiveRecord::Base.connection_pool.with_connection {
           obj = Tweet.where(:status_id => res.target_object.id)[0]
           if obj
-            if res.source.id == @mydata[:id]
+            if res.source.id == @mydata.id
               obj.favorited = true
               @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", true], true)
               obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
@@ -327,7 +355,7 @@ module Lumilly
         ActiveRecord::Base.connection_pool.with_connection {
           obj = Tweet.where(:status_id => res.target_object.id)[0]
           if obj
-            if res.source.id == @mydata[:id]
+            if res.source.id == @mydata.id
               obj.favorited = false
               @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", false], true)
               obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
@@ -386,10 +414,9 @@ module Lumilly
     end
 
     def self.add(res)
+      rec = nil
       ActiveRecord::Base.connection_pool.with_connection {
-        if Tweet.where(:status_id => res.id)[0]
-          return nil
-        end
+        rec = Tweet.where(:status_id => res.id)[0]
       }
       values = {
         :status_id => res.id,
@@ -403,7 +430,7 @@ module Lumilly
         :retweeted_status_id => res.retweeted_status? ? res.retweeted_status.id : nil,
         :source => res.source,
         :in_reply_to_status_id => res.in_reply_to_status_id? ? res.in_reply_to_status_id : nil,
-        :mention => res.retweeted_status? ? nil : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata[:id]).!.!,
+        :mention => res.retweeted_status? ? nil : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata.id).!.!,
         :entities => res.to_h[:entities].to_json,
         :extended_entities => res.to_h[:extended_entities].to_json,
         :retweeted => res.retweeted?,
@@ -415,9 +442,12 @@ module Lumilly
         Tweet.add(res.retweeted_status)
       end
       ret = nil
-      # p values
       ActiveRecord::Base.connection_pool.with_connection {
-        ret = Tweet.create(values)
+        if rec
+          ret = rec.update_attributes(values)
+        else
+          ret = Tweet.create(values)
+        end
       }
       return ret
     end
@@ -514,6 +544,7 @@ end
 
 # -- ui --
 
+$DEBUG_ = ARGV[0] =~ /^debug$/i
 puts "load preferences..."
 app = Lumilly::App.new("key_token.yml", "config.yml")
 app.setup_events
