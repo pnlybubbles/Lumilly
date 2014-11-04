@@ -39,11 +39,6 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`�
     consumer_secret     : ******
     access_token        : ******
     access_token_secret : ******
-	
-	
-	
-
-
 
 ###実行
 
@@ -54,6 +49,10 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`�
 
 `lumilly.rb`の終了は`^C`で行なって下さい。
 
+
+### プリファレンス
+
+`/rb/config.yml`を編集することで、キーバインドの設定、カラムの設定ができます。
 
 #ライセンス
 
