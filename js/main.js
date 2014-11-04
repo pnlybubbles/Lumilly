@@ -156,6 +156,22 @@ function event_setup (main, keymap) {
         tv.render();
       });
     });
+    // toggle overlay
+    tv.keybind.bind(keymap["toggle_overlay"].key, keymap["toggle_overlay"].with_key, function() {
+      this.detail_overlay_visible = !this.detail_overlay_visible;
+      if(this.detail_overlay_visible) {
+        if(tv.selected.length == 1) {
+          var html = this.mekeup_overlay_html();
+          if(this.tweet_detail_overlay.html() === "") {
+            this.show_detail_overlay(html);
+          }
+        }
+      } else {
+        if(this.tweet_detail_overlay.html() !== "") {
+          this.hide_detail_overlay();
+        }
+      }
+    }, column);
   });
 }
 
@@ -338,25 +354,25 @@ TimelineColumn.prototype = {
       }
     }, this);
     // tweet detail overlay visible toggling keybind
-    this.tableview.keybind.bind("32", [], function() {
-      this.detail_overlay_visible = !this.detail_overlay_visible;
-      // console.log(this.detail_overlay_visible);
-      if(this.detail_overlay_visible) {
-        // console.log(this.tableview.selected.length);
-        if(this.tableview.selected.length == 1) {
-          var html = this.mekeup_overlay_html();
-          // console.log(this.tweet_detail_overlay);
-          // console.log(this.tweet_detail_overlay.html());
-          if(this.tweet_detail_overlay.html() === "") {
-            this.show_detail_overlay(html);
-          }
-        }
-      } else {
-        if(this.tweet_detail_overlay.html() !== "") {
-          this.hide_detail_overlay();
-        }
-      }
-    }, this);
+    // this.tableview.keybind.bind("32", [], function() {
+    //   this.detail_overlay_visible = !this.detail_overlay_visible;
+    //   // console.log(this.detail_overlay_visible);
+    //   if(this.detail_overlay_visible) {
+    //     // console.log(this.tableview.selected.length);
+    //     if(this.tableview.selected.length == 1) {
+    //       var html = this.mekeup_overlay_html();
+    //       // console.log(this.tweet_detail_overlay);
+    //       // console.log(this.tweet_detail_overlay.html());
+    //       if(this.tweet_detail_overlay.html() === "") {
+    //         this.show_detail_overlay(html);
+    //       }
+    //     }
+    //   } else {
+    //     if(this.tweet_detail_overlay.html() !== "") {
+    //       this.hide_detail_overlay();
+    //     }
+    //   }
+    // }, this);
   },
   mekeup_overlay_html: function() {
     var values = this.tweets[this.index(this.tableview.selected[0])];

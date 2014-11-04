@@ -35,3 +35,7 @@ keybind:
   goto_end:
     key: 35 # end
     with_key: ""
+
+  toggle_overlay:
+    key: 32 # space
+    with_key: ""
