@@ -11,6 +11,10 @@ Accessor.prototype = {
     var self = this;
     this.ws.onopen = function(event) {
       console.log("websocket open");
+      try {
+        self.send("open", [event]);
+      } catch(e) {
+      }
       var req = {
         "name" : "load",
         "argu": null
@@ -23,15 +27,30 @@ Accessor.prototype = {
     };
     this.ws.onclose = function(event) {
       console.log("websocket close");
+      try {
+        self.send("close", [event]);
+      } catch(e) {
+      }
     };
     this.ws.onerror = function(event) {
       console.log("error");
+      try {
+        self.send("error", [event]);
+      } catch(e) {
+      }
     };
   },
   send_ws: function(msg) {
     msg["from"] = "client";
     console.log(msg);
     this.ws.send(JSON.stringify(msg));
+  },
+  send: function(name, argu) {
+    if(this.call_func_receiver[name]) {
+      return this.call_func_receiver[name].apply(this.call_func_receiver, argu);
+    } else {
+      throw new Error("receiver method undefined: \"" + name + "\"");
+    }
   },
   tell: function(req, callback) { // callback not recommend
     callback_id = null;
@@ -51,15 +70,12 @@ Accessor.prototype = {
       var e = req.content;
       switch(req.type) {
         case "event":
-          if(!this.call_func_receiver[e["name"]]) {
-            throw new Error("target method not found: \"" + e["name"] + "\"");
-          }
           if(e["argu"] === null || e["argu"] === undefined) {
             e["argu"] = [];
           } else if(!(e["argu"] instanceof Array)) {
             e["argu"] = [e["argu"]];
           }
-          ret = this.call_func_receiver[e["name"]].apply(this.call_func_receiver, e["argu"]);
+          ret = this.send(e["name"], e["argu"]);
           if(req.callback_id) {
             var msg = {
               "type" : "callback",
