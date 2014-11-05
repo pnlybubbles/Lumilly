@@ -39,3 +39,11 @@ keybind:
   toggle_overlay:
     key: 32 # space
     with_key: ""
+
+  go_next_column:
+    key: 39 # right arrow
+    with_key: "ctrl"
+
+  go_prev_column:
+    key: 37 # left arrow
+    with_key: "ctrl"

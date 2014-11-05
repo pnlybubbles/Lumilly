@@ -24,6 +24,9 @@ KeyEvents.prototype = {
     // KeyEvents.focused = KeyEvents.listeners.length - 1;
   },
   bind: function(key_code, with_key, func, this_obj) {
+    if(!key_code || !with_key) {
+      throw new Error("key_code or with_key undefined");
+    }
     if(with_key.join("").replace(/[acms]*/, "") !== "") {
       throw new Error("invalid with_key: " + with_key.join(", "));
     }

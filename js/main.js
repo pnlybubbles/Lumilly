@@ -172,6 +172,18 @@ function event_setup (main, keymap) {
         }
       }
     }, column);
+    // goto next column
+    tv.keybind.bind(keymap["go_next_column"].key, keymap["go_next_column"].with_key, function() {
+      if(main.column_view.columns.length >= 2) {
+        main.column_view.columns[i + 1 >= main.column_view.columns.length ? 0 : i + 1].tableview.keybind.focus();
+      }
+    });
+    // goto prev column
+    tv.keybind.bind(keymap["go_prev_column"].key, keymap["go_prev_column"].with_key, function() {
+      if(main.column_view.columns.length >= 2) {
+        main.column_view.columns[i - 1 <= -1 ? main.column_view.columns.length - 1 : i - 1].tableview.keybind.focus();
+      }
+    });
   });
 }
 
