@@ -88,7 +88,7 @@ module Accessor
           end
         rescue Exception => e
           puts e
-          puts e.backtrace
+          puts e.backtrace.join("\n") if $DEBUG_
         end
       }
     end
@@ -158,10 +158,10 @@ module Lumilly
           return self[meth.to_sym]
         end
       else
-        puts "getting verify credentials..."
+        puts "getting verify credentials..." if $DEBUG_
         @mydata = @client.verify_credentials
       end
-      puts "user id: #{@mydata.id}"
+      puts "user id: #{@mydata.id}" if $DEBUG_
     end
 
     def load_config(yaml_dir)
@@ -177,11 +177,11 @@ module Lumilly
 
     def setup_tweets
       unless $DEBUG_
-        puts "getting home timeline..."
+        puts "getting home timeline..." if $DEBUG_
         @client.home_timeline(:count => 200).each { |t|
           Tweet.add(t)
         }
-        puts "getting mention timeline..."
+        puts "getting mention timeline..." if $DEBUG_
         @client.mentions(:count => 200).each { |t|
           Tweet.add(t)
         }
@@ -191,25 +191,26 @@ module Lumilly
     def setup_events
       @accessor.transfer { |tr|
         tr.event("open") {
-          puts "opened"
+          puts "opened" if $DEBUG_
         }
 
         tr.event("load") {
-          puts "loaded"
+          puts "loaded" if $DEBUG_
           @config["columns"].each { |column|
-            puts @accessor.tr.call_function("create_timeline_column", column);
+            rp = @accessor.tr.call_function("create_timeline_column", column)
+            puts rp if $DEBUG_
             ActiveRecord::Base.connection_pool.with_connection {
               tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)
             }
           }
           tr.call_function("set_keybind_map", [@config["keybind"]])
-          puts "set keybind mapping"
+          puts "set keybind mapping" if $DEBUG_
           tr.call_function("gui_initialize_done", [])
-          puts "gui initialize done"
+          puts "gui initialize done" if $DEBUG_
         }
 
         tr.event("update_tweet") { |text, in_reply_to_status_id|
-          puts "==== update_tweet: #{text}  reply_to: #{in_reply_to_status_id}"
+          puts "==== update_tweet: #{text}  reply_to: #{in_reply_to_status_id}" if $DEBUG_
           if in_reply_to_status_id
             @client.update(text, :in_reply_to_status_id => in_reply_to_status_id)
           else
@@ -241,7 +242,7 @@ module Lumilly
         }
 
         tr.event("close") {
-          puts "closed"
+          puts "closed" if $DEBUG_
         }
       }
     end
@@ -249,7 +250,7 @@ module Lumilly
     def start_streaming
       Thread.new() {
         loop {
-          puts "streaming connecting..."
+          puts "streaming connecting..." if $DEBUG_
           begin
             @stream_client.user { |res|
               begin
@@ -265,7 +266,7 @@ module Lumilly
                 end
               rescue Exception => e
                 puts e.to_s
-                puts e.backtrace.join("\n")
+                puts e.backtrace.join("\n") if $DEBUG_
               end
             }
           rescue Exception => e
@@ -277,7 +278,7 @@ module Lumilly
     end
 
     def on_tweet(res)
-      puts "#{res.created_at} #{res.user.screen_name}: #{res.text}"
+      puts "#{res.created_at} #{res.user.screen_name}: #{res.text.gsub(/\n/, ' ')}"
       values = Lumilly::Tweet.add(res).to_values
       @config["columns"].each { |column|
         check = false
@@ -404,7 +405,7 @@ module Lumilly
     @@mydata = nil
 
     def self.setup(mydata)
-      puts "loading database..."
+      puts "loading database..." if $DEBUG_
       ActiveRecord::Base.establish_connection(
         "adapter"=>"sqlite3",
         "database" => "tweets.db"
@@ -566,8 +567,27 @@ end
 # -- ui --
 
 $DEBUG_ = ARGV[0] =~ /^debug$/i
-puts "load preferences..."
+unless $DEBUG_
+  puts "*.*.*.* Lumilly *.*.*.*"
+  puts "Now Initializing..."
+  progress = Thread.new {
+    bar = -1.0
+    loop {
+      sleep 0.005
+      bar = bar >= 1.0 ? -1.0 : bar + 0.012;
+      point = (((Math.sin((bar + 1 / 2) * 3.14) + 1) / 2) * 30).round
+      print("[" + (" " * point) + "*" + (" " * (30 - point)) + "] processing\r")
+    }
+  }
+end
+puts "load preferences..." if $DEBUG_
 app = Lumilly::App.new("key_token.yml", "config.yml")
 app.setup_events
-puts "accessor running..."
+puts "accessor running..." if $DEBUG_
+unless $DEBUG_
+  progress.kill
+  print "[#{'*' * 31}] ok        \n"
+  puts "Lumilly READY"
+  system("open ../main.html")
+end
 app.run
