@@ -9,6 +9,8 @@ gem "sqlite3"
 gem "activerecord"
 gem "activesupport"
 
+gem "terminal-notifier" if RUBY_PLATFORM.match(/darwin/)
+
 group :development do
   gem "pry"
   gem "pry-byebug"

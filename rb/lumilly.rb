@@ -5,6 +5,7 @@ require "sqlite3"
 require "active_record"
 require "active_support"
 require "active_support/core_ext"
+require "terminal-notifier" if RUBY_PLATFORM.match(/darwin/)
 require "pp"
 
 module Accessor
@@ -279,6 +280,12 @@ module Lumilly
 
     def on_tweet(res)
       puts "#{res.created_at} #{res.user.screen_name}: #{res.text.gsub(/\n/, ' ')}"
+      if res.retweeted_status? && res.retweeted_status.user.id == @mydata.id
+        Nofitication.notify("Retweeted by @#{res.user.screen_name}", res.retweeted_status.text)
+      end
+      if res.retweeted_status? ? false : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata.id)
+        Nofitication.notify("Reply from @#{res.user.screen_name}", res.text)
+      end
       values = Lumilly::Tweet.add(res).to_values
       @config["columns"].each { |column|
         check = false
@@ -358,6 +365,9 @@ module Lumilly
     def on_event(res)
       case res.name
       when :favorite
+        if res.target.id == @mydata.id
+          Nofitication.notify("Favorited by @#{res.source.screen_name}", res.target_object.text)
+        end
         ActiveRecord::Base.connection_pool.with_connection {
           obj = Tweet.where(:status_id => res.target_object.id)[0]
           if obj
@@ -390,7 +400,9 @@ module Lumilly
           end
         }
       when :follow
-        # follow
+        if res.target.id == @mydata.id
+          Nofitication.notify("Followed by @#{res.source.screen_name}", "#{res.source.name} : #{res.source.description}")
+        end
       when :unfollow
         # unfollow
       end
@@ -398,6 +410,16 @@ module Lumilly
 
     def run
       @accessor.start
+    end
+  end
+
+  class Nofitication
+    def self.notify(subtitle, msg)
+      if RUBY_PLATFORM.match(/darwin/)
+        TerminalNotifier.notify(msg, :title => 'Lumilly', :subtitle => subtitle, :active => "com.google.Chrome")
+      else
+        puts "\e[36;1mNotification:\e[m \e[1m[#{subtitle}] #{msg}\e[m"
+      end
     end
   end
 
