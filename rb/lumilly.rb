@@ -283,7 +283,7 @@ module Lumilly
       if res.retweeted_status? && res.retweeted_status.user.id == @mydata.id
         Nofitication.notify("Retweeted by @#{res.user.screen_name}", res.retweeted_status.text)
       end
-      if res.retweeted_status? ? false : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata.id)
+      if res.retweeted_status? ? false : res.user_mentions? && res.user_mentions.map(&:id).index(@mydata.id)
         Nofitication.notify("Reply from @#{res.user.screen_name}", res.text)
       end
       values = Lumilly::Tweet.add(res).to_values
