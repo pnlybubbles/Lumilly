@@ -14,7 +14,6 @@ module Accessor
 
     def initialize(debug = false)
       @tr = nil
-      @script = nil
       @debug = debug
       @transfer = nil
     end
@@ -178,13 +177,15 @@ module Lumilly
 
     def setup_tweets
       unless $DEBUG_
-        puts "getting home timeline..." if $DEBUG_
-        @client.home_timeline(:count => 200).each { |t|
-          Tweet.add(t)
-        }
-        puts "getting mention timeline..." if $DEBUG_
-        @client.mentions(:count => 200).each { |t|
-          Tweet.add(t)
+        ActiveRecord::Base.connection_pool.with_connection {
+          puts "getting mention timeline..." if $DEBUG_
+          @client.mentions(:count => 200).each { |t|
+            Tweet.add(t)
+          }
+          puts "getting home timeline..." if $DEBUG_
+          @client.home_timeline(:count => 200).each { |t|
+            Tweet.add(t)
+          }
         }
       end
     end
@@ -196,18 +197,18 @@ module Lumilly
         }
 
         tr.event("load") {
-          puts "loaded" if $DEBUG_
-          @config["columns"].each { |column|
-            rp = @accessor.tr.call_function("create_timeline_column", column)
-            puts rp if $DEBUG_
-            ActiveRecord::Base.connection_pool.with_connection {
+          ActiveRecord::Base.connection_pool.with_connection {
+            puts "loaded" if $DEBUG_
+            @config["columns"].each { |column|
+              rp = @accessor.tr.call_function("create_timeline_column", column)
+              puts rp if $DEBUG_
               tr.call_function("add_tweet_array", [column["id"], Lumilly::Tweet.get_latest(200, column["pattern"]).map(&:to_values).reverse], true)
             }
+            tr.call_function("set_keybind_map", [@config["keybind"]])
+            puts "set keybind mapping" if $DEBUG_
+            tr.call_function("gui_initialize_done", [])
+            puts "gui initialize done" if $DEBUG_
           }
-          tr.call_function("set_keybind_map", [@config["keybind"]])
-          puts "set keybind mapping" if $DEBUG_
-          tr.call_function("gui_initialize_done", [])
-          puts "gui initialize done" if $DEBUG_
         }
 
         tr.event("update_tweet") { |text, in_reply_to_status_id|
@@ -228,10 +229,12 @@ module Lumilly
         }
 
         tr.event("unretweet_tweet") { |id|
-          obj = Tweet.where(:user_id => @mydata.id, :retweeted_status_id => id)[0]
-          if obj
-            @client.destroy_status(obj.status_id)
-          end
+          ActiveRecord::Base.connection_pool.with_connection {
+            obj = Tweet.where(:user_id => @mydata.id, :retweeted_status_id => id)[0]
+            if obj
+              @client.destroy_status(obj.status_id)
+            end
+          }
         }
 
         tr.event("favorite_tweet") { |id|
@@ -255,16 +258,18 @@ module Lumilly
           begin
             @stream_client.user { |res|
               begin
-                case res
-                when Twitter::Tweet
-                  on_tweet(res)
-                when Twitter::DirectMessage
-                  # on_direct_message
-                when Twitter::Streaming::Event
-                  on_event(res)
-                when Twitter::Streaming::DeletedTweet
-                  on_delete(res)
-                end
+                ActiveRecord::Base.connection_pool.with_connection {
+                  case res
+                  when Twitter::Tweet
+                    on_tweet(res)
+                  when Twitter::DirectMessage
+                    # on_direct_message
+                  when Twitter::Streaming::Event
+                    on_event(res)
+                  when Twitter::Streaming::DeletedTweet
+                    on_delete(res)
+                  end
+                }
               rescue Exception => e
                 puts e.to_s
                 puts e.backtrace.join("\n") if $DEBUG_
@@ -286,7 +291,7 @@ module Lumilly
       if res.retweeted_status? ? false : res.user_mentions? && res.user_mentions.map(&:id).index(@mydata.id)
         Nofitication.notify("Reply from @#{res.user.screen_name}", res.text)
       end
-      values = Lumilly::Tweet.add(res).to_values
+      values = Lumilly::Tweet.add(res, true).to_values
       @config["columns"].each { |column|
         check = false
         case column["pattern"]
@@ -317,49 +322,45 @@ module Lumilly
         @accessor.tr.call_function("add_tweet", [column["id"], values], true) if @accessor.tr && check
       }
       if res.retweeted_status?
-        ActiveRecord::Base.connection_pool.with_connection {
-          obj = Tweet.where(:status_id => res.retweeted_status.id)[0]
-          if res.user.id == @mydata.id
-            obj.retweeted = true
-            @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "retweet", true], true)
-            obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
-            obj_retweets.each { |obj_r|
-              @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", true], true)
-            }
-          end
-          obj.retweet_count += 1
-          obj.save
-        }
+        obj_retweet_source = Tweet.where(:status_id => res.retweeted_status.id)[0]
+        if res.user.id == @mydata.id
+          obj_retweet_source.retweeted = true
+          @accessor.tr.call_function("update_tweet_status", [obj_retweet_source.status_id.to_s, "retweet", true], true) if @accessor.tr
+          obj_retweets = Tweet.where(:retweeted_status_id => obj_retweet_source.status_id)
+          obj_retweets.each { |obj_r|
+            @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", true], true) if @accessor.tr
+          }
+        end
+        obj_retweet_source.retweet_count += 1
+        obj_retweet_source.save
       end
     end
 
     def on_delete(res)
-      ActiveRecord::Base.connection_pool.with_connection {
-        obj = Tweet.where(:status_id => res.id)[0]
-        if obj
-          if obj.retweeted_status
-            obj_retweet_source = Tweet.where(:status_id => obj.retweeted_status_id)[0]
-            if obj.user_id == @mydata.id
-              obj_retweet_source.retweeted = false
-              @accessor.tr.call_function("update_tweet_status", [obj_retweet_source.status_id.to_s, "retweet", false], true)
-              obj_retweets = Tweet.where(:retweeted_status_id => obj_retweet_source.status_id)
-              obj_retweets.each { |obj_r|
-                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", false], true)
-              }
-            end
-            obj_retweet_source.retweet_count -= 1
-            obj_retweet_source.save
-          else
-            obj_retweets = Tweet.where(:retweeted_status_id => res.id)
+      obj = Tweet.where(:status_id => res.id)[0]
+      if obj
+        if obj.retweeted_status
+          obj_retweet_source = Tweet.where(:status_id => obj.retweeted_status_id)[0]
+          if obj.user_id == @mydata.id
+            obj_retweet_source.retweeted = false
+            @accessor.tr.call_function("update_tweet_status", [obj_retweet_source.status_id.to_s, "retweet", false], true) if @accessor.tr
+            obj_retweets = Tweet.where(:retweeted_status_id => obj_retweet_source.status_id)
             obj_retweets.each { |obj_r|
-              @accessor.tr.call_function("remove_tweet", obj_r.status_id.to_s, true)
-              obj_r.destroy
+              @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "retweet", false], true) if @accessor.tr
             }
           end
-          @accessor.tr.call_function("remove_tweet", obj.status_id.to_s, true)
-          obj.destroy
+          obj_retweet_source.retweet_count -= 1
+          obj_retweet_source.save
+        else
+          obj_retweets = Tweet.where(:retweeted_status_id => res.id)
+          obj_retweets.each { |obj_r|
+            @accessor.tr.call_function("remove_tweet", obj_r.status_id.to_s, true) if @accessor.tr
+            obj_r.destroy
+          }
         end
-      }
+        @accessor.tr.call_function("remove_tweet", obj.status_id.to_s, true) if @accessor.tr
+        obj.destroy
+      end
     end
 
     def on_event(res)
@@ -368,37 +369,33 @@ module Lumilly
         if res.target.id == @mydata.id
           Nofitication.notify("Favorited by @#{res.source.screen_name}", res.target_object.text)
         end
-        ActiveRecord::Base.connection_pool.with_connection {
-          obj = Tweet.where(:status_id => res.target_object.id)[0]
-          if obj
-            if res.source.id == @mydata.id
-              obj.favorited = true
-              @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", true], true)
-              obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
-              obj_retweets.each { |obj_r|
-                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", true], true)
-              }
-            end
-            obj.favorite_count += 1
-            obj.save
+        obj = Tweet.where(:status_id => res.target_object.id)[0]
+        if obj
+          if res.source.id == @mydata.id
+            obj.favorited = true
+            @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", true], true) if @accessor.tr
+            obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
+            obj_retweets.each { |obj_r|
+              @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", true], true) if @accessor.tr
+            }
           end
-        }
+          obj.favorite_count += 1
+          obj.save
+        end
       when :unfavorite
-        ActiveRecord::Base.connection_pool.with_connection {
-          obj = Tweet.where(:status_id => res.target_object.id)[0]
-          if obj
-            if res.source.id == @mydata.id
-              obj.favorited = false
-              @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", false], true)
-              obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
-              obj_retweets.each { |obj_r|
-                @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", false], true)
-              }
-            end
-            obj.favorite_count -= 1
-            obj.save
+        obj = Tweet.where(:status_id => res.target_object.id)[0]
+        if obj
+          if res.source.id == @mydata.id
+            obj.favorited = false
+            @accessor.tr.call_function("update_tweet_status", [obj.status_id.to_s, "favorite", false], true) if @accessor.tr
+            obj_retweets = Tweet.where(:retweeted_status_id => obj.status_id)
+            obj_retweets.each { |obj_r|
+              @accessor.tr.call_function("update_tweet_status", [obj_r.status_id.to_s, "favorite", false], true) if @accessor.tr
+            }
           end
-        }
+          obj.favorite_count -= 1
+          obj.save
+        end
       when :follow
         if res.target.id == @mydata.id
           Nofitication.notify("Followed by @#{res.source.screen_name}", "#{res.source.name} : #{res.source.description}")
@@ -457,11 +454,10 @@ module Lumilly
       @@mydata = mydata
     end
 
-    def self.add(res)
+    def self.add(res, *streaming)
+      streaming = streaming[0].!.!
       rec = nil
-      ActiveRecord::Base.connection_pool.with_connection {
-        rec = Tweet.where(:status_id => res.id)[0]
-      }
+      rec = Tweet.where(:status_id => res.id)[0]
       values = {
         :status_id => res.id,
         :status_created_at => DateTime.parse(res.created_at.to_s).new_offset(Rational(9,24)),
@@ -477,22 +473,20 @@ module Lumilly
         :mention => res.retweeted_status? ? nil : res.user_mentions? && res.user_mentions.map(&:id).index(@@mydata.id).!.!,
         :entities => res.to_h[:entities].to_json,
         :extended_entities => res.to_h[:extended_entities].to_json,
-        :retweeted => res.retweeted?,
-        :favorited => res.favorited?,
+        :retweeted => streaming ? (rec ? rec.retweeted : res.retweeted?) : res.retweeted?,
+        :favorited => streaming ? (rec ? rec.retweeted : res.favorited?) : res.favorited?,
         :retweet_count => res.retweet_count,
         :favorite_count => res.favorite_count
       }
       if res.retweeted_status?
-        Tweet.add(res.retweeted_status)
+        Tweet.add(res.retweeted_status, streaming)
       end
       ret = nil
-      ActiveRecord::Base.connection_pool.with_connection {
-        if rec
-          ret = rec.update_attributes(values)
-        else
-          ret = Tweet.create(values)
-        end
-      }
+      if rec
+        ret = rec.update_attributes(values)
+      else
+        ret = Tweet.create(values)
+      end
       return ret
     end
 
@@ -500,9 +494,7 @@ module Lumilly
       values = adapt_for_json(self.attributes.symbolize_keys)
       if values[:retweeted_status]
         retweeted_obj = nil
-        ActiveRecord::Base.connection_pool.with_connection {
-          retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])[0]
-        }
+        retweeted_obj = Tweet.where(:status_id => values[:retweeted_status_id])[0]
         if retweeted_obj
           values[:retweeted_values] = retweeted_obj.to_values
         else
@@ -516,32 +508,30 @@ module Lumilly
 
     def self.get_latest(num, pattern)
       result = nil
-      ActiveRecord::Base.connection_pool.with_connection {
-        case pattern
-        when "all"
-          result = Tweet.order("-status_id").limit(num)
-        when "mention"
-          result = Tweet.where(:mention => true).order("-status_id").limit(num)
-        else
-          pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
-            case word
-            when /^or$/i
-              "or"
-            when /^and$/i
-              "and"
-            when /^not$/i
-              "not"
-            when "("
-              "("
-            when ")"
-              ")"
-            else
-              "text glob '*#{word}*'"
-            end
-          }.join(" ")
-          result = Tweet.where(pattern_query).order("-status_id").limit(num)
-        end
-      }
+      case pattern
+      when "all"
+        result = Tweet.order("-status_id").limit(num)
+      when "mention"
+        result = Tweet.where(:mention => true).order("-status_id").limit(num)
+      else
+        pattern_query = pattern.gsub(/\(/, " ( ").gsub(/\)/, " ) ").split(" ").map { |word|
+          case word
+          when /^or$/i
+            "or"
+          when /^and$/i
+            "and"
+          when /^not$/i
+            "not"
+          when "("
+            "("
+          when ")"
+            ")"
+          else
+            "text glob '*#{word}*'"
+          end
+        }.join(" ")
+        result = Tweet.where(pattern_query).order("-status_id").limit(num)
+      end
       return result
     end
 
