@@ -416,7 +416,7 @@ module Lumilly
   class Nofitication
     def self.notify(subtitle, msg)
       if RUBY_PLATFORM.match(/darwin/)
-        TerminalNotifier.notify(msg, :title => 'Lumilly', :subtitle => subtitle, :active => "com.google.Chrome")
+        TerminalNotifier.notify(msg, :title => 'Lumilly', :subtitle => subtitle, :active => "com.google.Chrome", :sound => "default")
       else
         puts "\e[36;1mNotification:\e[m \e[1m[#{subtitle}] #{msg}\e[m"
       end
