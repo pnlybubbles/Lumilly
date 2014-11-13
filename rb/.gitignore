@@ -2,6 +2,7 @@
 .bundle
 /vendor/bundler
 *.lock
+.ruby-version
 /key_token.rb
 /key_token.yml
 *.db
