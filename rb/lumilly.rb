@@ -474,7 +474,7 @@ module Lumilly
         :entities => res.to_h[:entities].to_json,
         :extended_entities => res.to_h[:extended_entities].to_json,
         :retweeted => streaming ? (rec ? rec.retweeted : res.retweeted?) : res.retweeted?,
-        :favorited => streaming ? (rec ? rec.retweeted : res.favorited?) : res.favorited?,
+        :favorited => streaming ? (rec ? rec.favorited : res.favorited?) : res.favorited?,
         :retweet_count => res.retweet_count,
         :favorite_count => res.favorite_count
       }
