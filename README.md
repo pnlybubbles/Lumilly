@@ -47,8 +47,6 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`�
 	cd rb
 	bundle exec ruby lumilly.rb
 
-これを実行した後、ブラウザで`main.html`を開きます。
-
 `lumilly.rb`の終了は`^C`で行なって下さい。
 
 ###### サーバーマシンの場合
