@@ -19,9 +19,12 @@ require(['jquery.easing.min', 'jquery.mousewheel', 'TweenLite.min', 'jquery.gsap
   setup();
 });
 
+var DEFAULT_IP = "localhost";
+var DEFAULT_PORT = "8080";
+
 // js libs ready
 function setup () {
-  var main = new Methods();
+  var main = new Methods(DEFAULT_IP, DEFAULT_PORT);
 }
 
 // gui initialize done
@@ -242,9 +245,9 @@ function Methods () {
 }
 
 Methods.prototype = {
-  initialize: function() {
+  initialize: function(ip, port) {
     this.show_splash_screen();
-    this.accessor = new Accessor(this);
+    this.accessor = new Accessor(this, ip, port);
     this.column_view = new ColumnView();
   },
   test: function(t) {
@@ -283,11 +286,17 @@ Methods.prototype = {
   },
   change_activity_message: function(msg) {
     if(ENABLE_SPLASH_SCREEN) {
-      $(".splash_screen .activity_message").text(msg);
+      $(".splash_screen .activity_message").html(msg);
     }
   },
   error: function() {
-    this.change_activity_message("[ERROR] lumilly.rb is not working");
+    this.change_activity_message("[ERROR] lumilly.rb is not working <span class='adress_config_button'>Config</span>");
+    var self = this;
+    $(".adress_config_button").on("click", function() {
+      var adress = window.prompt("Input WebSocket server adress", DEFAULT_IP + ":" + DEFAULT_PORT).match(/^(.+?):?([0-9]+)?$/);
+      console.log(adress[1], adress[2]);
+      self.initialize(adress[1], adress[2]);
+    });
   },
   set_keybind_map: function(keybind_map) {
     this.change_activity_message("Setting keybind...");

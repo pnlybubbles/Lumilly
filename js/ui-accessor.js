@@ -5,9 +5,11 @@ function Accessor () {
 }
 
 Accessor.prototype = {
-  initialize: function(call_func_receiver) {
+  initialize: function(call_func_receiver, ip, port) {
+    ip = ip || "locahost";
+    port = port || 8080;
     this.call_func_receiver = call_func_receiver;
-    this.ws = new WebSocket("ws://localhost:8080/");
+    this.ws = new WebSocket("ws://" + ip + ":" + port + "/");
     var self = this;
     this.ws.onopen = function(event) {
       console.log("websocket open");

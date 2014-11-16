@@ -8,6 +8,9 @@ require "active_support/core_ext"
 require "terminal-notifier" if RUBY_PLATFORM.match(/darwin/)
 require "pp"
 
+DEFAULT_IP = "0.0.0.0"
+DEFAULT_PORT = 8080
+
 module Accessor
   class Socket
     attr_reader :tr
@@ -19,7 +22,7 @@ module Accessor
     end
 
     def start
-      EM::WebSocket.start(:host => "localhost", :port => 8080, :debug => @debug) do |ws|
+      EM::WebSocket.start(:host => DEFAULT_IP, :port => DEFAULT_PORT, :debug => @debug) do |ws|
         ws.onopen {
           @tr = Transfer.new(ws)
           @transfer.call(@tr)
@@ -225,10 +228,10 @@ module Lumilly
           file = []
           media.each_with_index { |m, i|
             file[i] ||= {}
-            puts m["filename"]
+            puts m["filename"] if $DEBUG_
             file[i][:filename] = i.to_s + m["filename"][/\.[^\.]+$/]
             file[i][:base64] = m["base64"].match(/base64,(?<base>.*)$/)[:base]
-            puts "filename: " + file[i][:filename] + " base64: " + file[i][:base64][0, 40]
+            puts "filename: " + file[i][:filename] + " base64: " + file[i][:base64][0, 40] if $DEBUG_
             File.binwrite(file[i][:filename], file[i][:base64].unpack('m')[0])
           }
           if file.length == 1
@@ -242,7 +245,7 @@ module Lumilly
             file.each { |f|
               media_ids << @client.upload(File.new(f[:filename]))
             }
-            p media_ids
+            p media_ids if $DEBUG_
             if in_reply_to_status_id
               @client.update(text, :in_reply_to_status_id => in_reply_to_status_id, :media_ids => media_ids.join(","))
             else
