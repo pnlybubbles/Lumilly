@@ -4,7 +4,7 @@
 
 Twitterクライアント
 
-現在は試作段階です。以下の条件があれば実行できます。
+現在は試作段階です。以下の条件があれば実行できます。(Mac推奨)
 
 #実行
 
@@ -23,7 +23,7 @@ Twitterクライアント
 `bundler`にてgemをインストール
 
 	cd rb
-	bundle install --path vendor/bundler
+	bundle install --without development --path vendor/bundler
 
 ###Oauth key
 
@@ -40,7 +40,9 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`�
     access_token        : ******
     access_token_secret : ******
 
-###実行
+###Lumillyの実行
+
+###### ローカルのみの場合
 
 	cd rb
 	bundle exec ruby lumilly.rb
@@ -49,6 +51,32 @@ ConsumerKey, AcccessTokenを取ってきて、以下のように`key_token.yml`�
 
 `lumilly.rb`の終了は`^C`で行なって下さい。
 
+###### サーバーマシンの場合
+
+	cd rb
+	nohup bundle exec ruby lumilly.rb > /dev/null &
+
+`lumilly.rb`の終了する時は
+
+	ps ax | grep lumilly.rb
+
+でPIDを調べて、`kill -s INT`でプロセスを終了する。
+
+### インターフェースの実行
+
+(lumilly.rbの起動は遅いため、完全に読み込みが終わってから実行してください)
+
+###### Macの場合
+
+`lumilly.rb`を実行し、正常に読み込みが終わると自動的にデフォルトブラウザで`main.html`が開かれます。
+
+デフォルトブラウザがChromeでない場は、デフォルトブラウザで開かれた`main.html`を閉じてから`main.html`をChromeで開いてください。
+
+###### Linux, Windowsの場合
+
+`main.html`をChromeで開く。
+
+ `lumilly.rb `をサーバーマシンで起動している場合、スプラッシュスクリーンでエラーが出るのでConfigをクリックし、IPアドレスを入力してください。
 
 ### プリファレンス
 
