@@ -220,6 +220,40 @@ module Lumilly
           end
         }
 
+        tr.event("update_tweet_with_media") { |text, media, in_reply_to_status_id|
+          puts "==== update_tweet_with_media: #{text}  reply_to: #{in_reply_to_status_id}" if $DEBUG_
+          file = []
+          media.each_with_index { |m, i|
+            file[i] ||= {}
+            puts m["filename"]
+            file[i][:filename] = i.to_s + m["filename"][/\.[^\.]+$/]
+            file[i][:base64] = m["base64"].match(/base64,(?<base>.*)$/)[:base]
+            puts "filename: " + file[i][:filename] + " base64: " + file[i][:base64][0, 40]
+            File.binwrite(file[i][:filename], file[i][:base64].unpack('m')[0])
+          }
+          if file.length == 1
+            if in_reply_to_status_id
+              @client.update_with_media(text, File.new(file[0][:filename]), {:in_reply_to_status_id => in_reply_to_status_id})
+            else
+              @client.update_with_media(text, File.new(file[0][:filename]))
+            end
+          else
+            media_ids = []
+            file.each { |f|
+              media_ids << @client.upload(File.new(f[:filename]))
+            }
+            p media_ids
+            if in_reply_to_status_id
+              @client.update(text, :in_reply_to_status_id => in_reply_to_status_id, :media_ids => media_ids.join(","))
+            else
+              @client.update(text, :media_ids => media_ids.join(","))
+            end
+          end
+          file.each { |f|
+            File.delete(f[:filename])
+          }
+        }
+
         tr.event("delete_tweet") { |id|
           @client.destroy_status(id)
         }
@@ -277,6 +311,10 @@ module Lumilly
             }
           rescue Exception => e
             puts e.to_s
+            if e.to_s == "no address for userstream.twitter.com"
+              puts "press [enter] to restart connection: "
+              gets
+            end
           end
           sleep 5
         }

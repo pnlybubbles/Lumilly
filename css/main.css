@@ -63,15 +63,35 @@ body {
   display: flex;
 }
 
+/* compose field */
+
 .compose_field {
   position: relative;
   box-sizing: border-box;
   border-top: solid 1px rgb(210, 210, 210);
-  padding: 8px 13px;
+  /*padding: 8px 13px;*/
   height: 60px;
+  display: flex;
 }
 
-.text_field_counter {
+.text_field {
+  flex: 1 1;
+  padding: 8px 13px;
+  display: flex;
+}
+
+.text_area {
+  font-size: 12px;
+  resize: none;
+  border: none;
+  flex: 1 1;
+}
+
+.text_area:focus {
+  outline: none;
+}
+
+.text_area_counter {
   display: none;
   position: absolute;
   font-size: 13px;
@@ -81,17 +101,42 @@ body {
   color: rgb(130, 130, 130);
 }
 
-.text_field {
-  font-size: 12px;
-  display: block;
-  resize: none;
-  border: none;
-  width: 100%;
-  height: 100%;
+/* attach field */
+
+.attach_field {
+  overflow: hidden;
 }
 
-.text_field:focus {
-  outline: none;
+.attach_thumb_wrap {
+  position: relative;
+  width: 100px;
+  height: 50px;
+  overflow: hidden;
+  box-shadow: 0 0 3px 0 rgb(0, 0, 0);
+  margin-left: 12px;
+  margin-top: 9px;
+  margin-right: 5px;
+  float: left;
+}
+
+.attach_thumb {
+  width: 100px;
+}
+
+.attach_clear_button {
+  position: absolute;
+  top: 5;
+  left: 5;
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: rgb(255, 255, 255);
+  border-radius: 8.5px;
+  width: 17px;
+  height: 17px;
+  background-image: url("assets/close_button.png");
+  background-size: 70%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* column item base style */

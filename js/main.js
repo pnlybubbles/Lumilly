@@ -37,31 +37,73 @@ function event_setup (main, keymap) {
   main.column_view.columns.first().tableview.keybind.focus();
   // compise field events
   var text_field_keybind = new KeyEvents("compose_field");
-  $(".text_field").on("focus", function() {
+  $(".text_area").on("focus", function() {
     text_field_keybind.focus();
   });
-  $(".text_field").on("keyup", function() {
-    var count = 140 - check_update_count($(".text_field").val(), false);
+  $(".text_area").on("keyup", function() {
+    var count = 140 - check_update_count($(".text_area").val(), media.length !== 0);
     if(count < 0) {
-      $(".text_field_counter").css({"color" : "rgb(255, 54, 46)"});
+      $(".text_area_counter").css({"color" : "rgb(255, 54, 46)"});
     } else {
-      $(".text_field_counter").css({"color" : "rgb(130, 130, 130)"});
+      $(".text_area_counter").css({"color" : "rgb(130, 130, 130)"});
     }
-    $(".text_field_counter").text(count);
+    $(".text_area_counter").text(count);
   });
   text_field_keybind.on_focus(function() {
     // console.log("on_focus");
-    $(".text_field").focus();
-    $(".text_field_counter").show();
+    $(".text_area").focus();
+    $(".text_area_counter").show();
   });
   text_field_keybind.on_blur(function() {
-    $(".text_field").blur();
-    $(".text_field_counter").hide();
+    $(".text_area").blur();
+    $(".text_area_counter").hide();
   });
+  // post with media controller
+  media = [];
+  $.event.props.push('dataTransfer');
+  $("html").bind("drop", function(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    console.log(event);
+    var files = event.dataTransfer.files;
+    // Loop through the FileList and render image files as thumbnails.
+    $.each(files, function(i, f) {
+      // Only process image files.
+      if (!f.type.match('image.*')) {
+        return true;
+      }
+      var reader = new FileReader();
+      // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+        return function(e) {
+          // Render thumbnail.
+          var index = media.length;
+          $(".attach_field").append(['<div class="attach_thumb_wrap"><img class="attach_thumb" src="', e.target.result,
+                            '" title="', escape(theFile.name), '"/><div class="attach_clear_button"></div></div>'].join(''));
+          $(".attach_field").find(".attach_thumb_wrap").last().fadeIn(200);
+          $(".attach_field").find(".attach_clear_button").last().on("click", function() {
+            $(this).parent().fadeOut(250, function() {
+              $(this).remove();
+            });
+            media.splice(index, 1);
+            $(".text_area").trigger("keyup").trigger("focus");
+          });
+          media.push({
+            "base64" : e.target.result,
+            "filename" : theFile.name
+          });
+          console.log(media);
+          $(".text_area").trigger("keyup");
+        };
+      })(f);
+      // Read in the image file as a data URL.
+      reader.readAsDataURL(f);
+    });
+  }).bind("dragenter dragover", false);
   // post tweet
   text_field_keybind.bind(keymap["post_tweet"].key, keymap["post_tweet"].with_key, function() {
-    var text = $(".text_field").val();
-    var count = check_update_count(text, false);
+    var text = $(".text_area").val();
+    var count = check_update_count(text, media.length !== 0);
     if(count <= 140 && count !== 0) {
       var in_reply_to_id = null;
       if(in_reply_to.screen_name) {
@@ -69,8 +111,14 @@ function event_setup (main, keymap) {
           in_reply_to_id = in_reply_to.id;
         }
       }
-      $(".text_field").val("");
-      main.accessor.call_method("update_tweet", [text, in_reply_to_id]);
+      $(".text_area").val("");
+      if(media.length !== 0) {
+        main.accessor.call_method("update_tweet_with_media", [text, media, in_reply_to_id]);
+        media = [];
+        $(".attach_field").empty();
+      } else {
+        main.accessor.call_method("update_tweet", [text, in_reply_to_id]);
+      }
       in_reply_to = {
         "id" : null,
         "screen_name" : null
@@ -83,11 +131,11 @@ function event_setup (main, keymap) {
       KeyEvents.focus(before_focused_column);
     }
   });
+  // tableviews key events
   var in_reply_to = {
     "id" : null,
     "screen_name" : null
   };
-  // tableviews key events
   $.each(main.column_view.columns, function(i, column) {
     var tv = column.tableview;
     // toggle focus textarea or tableview
@@ -109,12 +157,12 @@ function event_setup (main, keymap) {
           in_reply_to_tweets.push(base_tweet);
         });
         console.log(in_reply_to_tweets);
-        $(".text_field").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_field").val());
+        $(".text_area").val("@" + in_reply_to_tweets.map(function(tw) { return tw.screen_name; }).unique().join(" @") + " " + $(".text_area").val());
         in_reply_to.screen_name = in_reply_to_tweets.first().screen_name;
         in_reply_to.id = in_reply_to_tweets.first().status_id;
         // console.log(in_reply_to);
         KeyEvents.focus("compose_field");
-        $(".text_field")[0].setSelectionRange($(".text_field").val().length, $(".text_field").val().length);
+        $(".text_area")[0].setSelectionRange($(".text_area").val().length, $(".text_area").val().length);
       }
     });
     // toggle favorite
