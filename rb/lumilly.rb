@@ -464,8 +464,8 @@ module Lumilly
     def self.setup(mydata)
       puts "loading database..." if $DEBUG_
       ActiveRecord::Base.establish_connection(
-        "adapter"=>"sqlite3",
-        "database" => "tweets.db"
+        :adapter => "sqlite3",
+        :database => "tweets.db"
       )
       unless ActiveRecord::Base.connection.table_exists?(:tweets)
         ActiveRecord::Migration.create_table(:tweets) { |t|
